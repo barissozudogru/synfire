@@ -64,16 +64,22 @@ def make_random_pairs(
         Tuple of (left, right) arrays, each of shape (N, D).
     """
     n = len(windows)
-    left_indices = np.arange(n)
-    right_indices = np.empty(n, dtype=np.intp)
 
-    for i in range(n):
-        candidates = np.where(np.abs(np.arange(n) - i) >= min_gap)[0]
-        if len(candidates) == 0:
-            candidates = np.array([j for j in range(n) if j != i])
-        right_indices[i] = rng.choice(candidates)
+    if n <= min_gap:
+        # Fallback: not enough windows for the gap constraint, pair with any other
+        offsets = rng.integers(1, n, size=n)
+        right_indices = (np.arange(n) + offsets) % n
+    else:
+        # Valid offsets: [min_gap, n - min_gap] to ensure circular gap >= min_gap
+        max_offset = n - min_gap
+        if max_offset < min_gap:
+            # n < 2 * min_gap: any offset in [min_gap, n) may wrap, accept it
+            offsets = rng.integers(min_gap, n, size=n)
+        else:
+            offsets = rng.integers(min_gap, max_offset + 1, size=n)
+        right_indices = (np.arange(n) + offsets) % n
 
-    return windows[left_indices], windows[right_indices]
+    return windows, windows[right_indices]
 
 
 def make_shuffled_pairs(
