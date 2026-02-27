@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "synfire"
-version = "0.1.0"
+version = "0.2.0"
 description = "Forward-Forward + Hebbian competitive learning for time series"
 authors = ["Baris Sozudogru"]
 license = "MIT"
