@@ -92,6 +92,9 @@ def save_pipeline(pipeline, path: str | Path) -> None:
         raise TypeError(f"Expected SynfirePipeline, got {type(pipeline).__name__}")
 
     pipeline._check_fitted()
+    assert pipeline._stack is not None
+    assert pipeline._hebbian is not None
+    assert pipeline._anomaly_scaler is not None
 
     arrays: dict[str, NDArray] = {}
 
@@ -100,8 +103,9 @@ def save_pipeline(pipeline, path: str | Path) -> None:
     arrays["config_json"] = np.frombuffer(config_json.encode("utf-8"), dtype=np.uint8)
 
     # FF stack layers
+    stack = pipeline._stack
     layer_configs = []
-    for i, layer in enumerate(pipeline._stack.layers):
+    for i, layer in enumerate(stack.layers):
         arrays[f"W_{i}"] = layer.W
         arrays[f"b_{i}"] = layer.b
         layer_configs.append({
@@ -114,7 +118,7 @@ def save_pipeline(pipeline, path: str | Path) -> None:
         })
     lc_json = json.dumps(layer_configs)
     arrays["layer_configs_json"] = np.frombuffer(lc_json.encode("utf-8"), dtype=np.uint8)
-    arrays["n_layers"] = np.array([len(pipeline._stack.layers)])
+    arrays["n_layers"] = np.array([len(stack.layers)])
 
     # Hebbian state
     arrays["prototypes"] = pipeline._hebbian.prototypes
@@ -128,7 +132,7 @@ def save_pipeline(pipeline, path: str | Path) -> None:
     ])
     arrays["scaler_trans_prob"] = scaler.trans_prob
 
-    np.savez(path, **arrays)
+    np.savez(str(path), **arrays)  # type: ignore[arg-type]
 
 
 def load_pipeline(path: str | Path):
