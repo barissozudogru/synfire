@@ -89,6 +89,24 @@ class TestRandomPairs:
                     break
 
 
+class TestRandomPairsEdgeCases:
+    def test_n_equals_1_returns_copy(self, rng):
+        windows = np.array([[1.0, 2.0, 3.0]])
+        left, right = make_random_pairs(windows, rng, min_gap=5)
+        np.testing.assert_array_equal(left, windows)
+        np.testing.assert_array_equal(right, windows)
+        # Verify it's a copy, not the same object
+        assert right is not left
+
+    def test_n_less_than_2_min_gap_relaxes_constraint(self, rng):
+        series = np.arange(40, dtype=np.float64)
+        windows = sliding_windows(series, WindowConfig(window_size=5, stride=5))
+        # 8 windows with min_gap=5 means n < 2*min_gap, gap is relaxed
+        left, right = make_random_pairs(windows, rng, min_gap=5)
+        assert left.shape == right.shape == windows.shape
+        # Should not crash and should return valid pairs
+
+
 class TestShuffledPairs:
     def test_shapes(self, sine_series, rng):
         windows = sliding_windows(sine_series, WindowConfig(window_size=20))

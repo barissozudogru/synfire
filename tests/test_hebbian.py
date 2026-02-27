@@ -67,6 +67,18 @@ class TestDistances:
         assert np.all(dists >= 0)
 
 
+class TestKmeansPlusPlusEdgeCases:
+    def test_all_identical_data(self, rng):
+        """k-means++ should not crash when all data points are identical."""
+        data = np.ones((50, 8))
+        cfg = HebbianConfig(n_prototypes=5, seed=42)
+        state = init_hebbian(data, cfg)
+        assert state.prototypes.shape == (5, 8)
+        # All prototypes should be the same point
+        for p in state.prototypes:
+            np.testing.assert_allclose(p, 1.0)
+
+
 class TestTrainHebbian:
     def test_prototypes_converge_to_clusters(self, rng):
         data, true_centers = _make_clustered_data(rng)

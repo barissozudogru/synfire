@@ -228,3 +228,57 @@ class TestAblation:
         scores = pipeline.anomaly_scores(sine_series)
         assert len(scores) > 0
         assert np.all(np.isfinite(scores))
+
+
+class TestInputValidation:
+    """Test that invalid series inputs are rejected with clear errors."""
+
+    def test_nan_series_rejected(self):
+        pipeline = SynfirePipeline()
+        series = np.array([1.0, 2.0, np.nan, 4.0] * 100)
+        with pytest.raises(ValueError, match="non-finite"):
+            pipeline.fit(series)
+
+    def test_inf_series_rejected(self):
+        pipeline = SynfirePipeline()
+        series = np.array([1.0, np.inf, 3.0, 4.0] * 100)
+        with pytest.raises(ValueError, match="non-finite"):
+            pipeline.fit(series)
+
+    def test_3d_series_rejected(self):
+        pipeline = SynfirePipeline()
+        series = np.ones((10, 5, 3))
+        with pytest.raises(ValueError, match="1D or 2D"):
+            pipeline.fit(series)
+
+    def test_empty_series_rejected(self):
+        pipeline = SynfirePipeline()
+        series = np.array([])
+        with pytest.raises(ValueError, match="non-empty"):
+            pipeline.fit(series)
+
+    def test_too_short_series_rejected(self):
+        pipeline = SynfirePipeline(SynfireConfig(window=WindowConfig(window_size=50)))
+        series = np.arange(30, dtype=np.float64)
+        with pytest.raises(ValueError, match="shorter than window_size"):
+            pipeline.fit(series)
+
+
+class TestConfigValidation:
+    """Test that invalid config values are rejected at construction time."""
+
+    def test_zero_window_size_rejected(self):
+        with pytest.raises(ValueError, match="window_size must be >= 1"):
+            WindowConfig(window_size=0)
+
+    def test_negative_lr_rejected(self):
+        with pytest.raises(ValueError, match="lr must be > 0"):
+            FFStackConfig(lr=-0.01)
+
+    def test_zero_prototypes_rejected(self):
+        with pytest.raises(ValueError, match="n_prototypes must be >= 1"):
+            HebbianConfig(n_prototypes=0)
+
+    def test_negative_weight_rejected(self):
+        with pytest.raises(ValueError, match="weight_goodness must be >= 0"):
+            AnomalyConfig(weight_goodness=-1.0)

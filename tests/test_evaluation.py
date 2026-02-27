@@ -38,6 +38,20 @@ class TestMannWhitneyAUC:
         assert mann_whitney_auc(scores, labels) == 0.5
 
 
+class TestLabelScoreAlignment:
+    def test_label_shorter_than_scores_aligns_correctly(self):
+        scores = np.array([10.0, 9.0, 8.0, 1.0, 2.0, 3.0])
+        labels = np.array([1, 1, 1, 0])  # shorter than scores
+        auc = mann_whitney_auc(scores[:4], labels)
+        assert 0.0 <= auc <= 1.0
+
+    def test_scores_shorter_than_labels_aligns_correctly(self):
+        scores = np.array([10.0, 9.0, 1.0])
+        labels = np.array([1, 1, 0, 0, 0])  # longer than scores
+        auc = mann_whitney_auc(scores, labels[:3])
+        assert 0.0 <= auc <= 1.0
+
+
 class TestMultiSeedEvaluation:
     @pytest.fixture
     def small_config(self):
@@ -65,6 +79,15 @@ class TestMultiSeedEvaluation:
         assert all(0.0 <= auc <= 1.0 for auc in result.auc_scores)
         assert 0.0 <= result.mean_auc <= 1.0
         assert result.std_auc >= 0.0
+
+    def test_multi_seed_varies_hebbian_seed(self, sine_series, small_config):
+        """Each seed should produce a different Hebbian configuration."""
+        from synfire.evaluation import _config_with_seed
+
+        c1 = _config_with_seed(small_config, 0)
+        c2 = _config_with_seed(small_config, 1)
+        assert c1.hebbian.seed != c2.hebbian.seed
+        assert c1.ff_stack.seed != c2.ff_stack.seed
 
     def test_result_post_init(self):
         result = EvaluationResult(seeds=[0, 1, 2], auc_scores=[0.7, 0.8, 0.9])
