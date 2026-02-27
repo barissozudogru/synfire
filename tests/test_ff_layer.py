@@ -2,6 +2,7 @@ import numpy as np
 
 from synfire.core.config import FFLayerConfig, WindowConfig
 from synfire.layers.ff_layer import (
+    FFLayerState,
     compute_loss,
     forward,
     goodness,
@@ -93,6 +94,84 @@ class TestTrainStep:
         new_state, loss = train_step(state, x_pos, x_neg)
         assert np.isfinite(loss)
         assert new_state.W.shape == state.W.shape
+
+
+class TestGradientCorrectness:
+    """Finite-difference gradient checks for the FF layer."""
+
+    def test_weight_gradient(self):
+        rng = np.random.default_rng(99)
+        cfg = FFLayerConfig(input_dim=4, hidden_dim=6, lr=1.0, threshold=2.0, epochs=1, seed=99)
+        state = init_layer(cfg)
+        x_pos = rng.standard_normal((8, 4))
+        x_neg = rng.standard_normal((8, 4))
+
+        # lr=1 trick: dW = W_old - W_new when lr=1
+        W_old = state.W.copy()
+        new_state, _ = train_step(state, x_pos, x_neg)
+        analytic_dW = W_old - new_state.W
+
+        # Numerical gradient via central differences
+        eps = 1e-5
+        numerical_dW = np.zeros_like(state.W)
+        for i in range(state.W.shape[0]):
+            for j in range(state.W.shape[1]):
+                W_plus = state.W.copy()
+                W_plus[i, j] += eps
+                s_plus = FFLayerState(W=W_plus, b=state.b.copy(), config=cfg)
+                _, loss_plus = train_step.__wrapped__(s_plus, x_pos, x_neg) if hasattr(train_step, '__wrapped__') else (None, None)
+                # Compute loss directly
+                h_pos_p = np.maximum(x_pos @ W_plus.T + state.b, 0)
+                g_pos_p = np.mean(h_pos_p**2, axis=1)
+                h_neg_p = np.maximum(x_neg @ W_plus.T + state.b, 0)
+                g_neg_p = np.mean(h_neg_p**2, axis=1)
+                loss_p, _, _ = compute_loss(g_pos_p, g_neg_p, cfg.threshold)
+
+                W_minus = state.W.copy()
+                W_minus[i, j] -= eps
+                h_pos_m = np.maximum(x_pos @ W_minus.T + state.b, 0)
+                g_pos_m = np.mean(h_pos_m**2, axis=1)
+                h_neg_m = np.maximum(x_neg @ W_minus.T + state.b, 0)
+                g_neg_m = np.mean(h_neg_m**2, axis=1)
+                loss_m, _, _ = compute_loss(g_pos_m, g_neg_m, cfg.threshold)
+
+                numerical_dW[i, j] = (loss_p - loss_m) / (2 * eps)
+
+        np.testing.assert_allclose(analytic_dW, numerical_dW, atol=1e-4, rtol=1e-3)
+
+    def test_bias_gradient(self):
+        rng = np.random.default_rng(77)
+        cfg = FFLayerConfig(input_dim=4, hidden_dim=6, lr=1.0, threshold=2.0, epochs=1, seed=77)
+        state = init_layer(cfg)
+        x_pos = rng.standard_normal((8, 4))
+        x_neg = rng.standard_normal((8, 4))
+
+        b_old = state.b.copy()
+        new_state, _ = train_step(state, x_pos, x_neg)
+        analytic_db = b_old - new_state.b
+
+        eps = 1e-5
+        numerical_db = np.zeros_like(state.b)
+        for i in range(state.b.shape[0]):
+            b_plus = state.b.copy()
+            b_plus[i] += eps
+            h_pos_p = np.maximum(x_pos @ state.W.T + b_plus, 0)
+            g_pos_p = np.mean(h_pos_p**2, axis=1)
+            h_neg_p = np.maximum(x_neg @ state.W.T + b_plus, 0)
+            g_neg_p = np.mean(h_neg_p**2, axis=1)
+            loss_p, _, _ = compute_loss(g_pos_p, g_neg_p, cfg.threshold)
+
+            b_minus = state.b.copy()
+            b_minus[i] -= eps
+            h_pos_m = np.maximum(x_pos @ state.W.T + b_minus, 0)
+            g_pos_m = np.mean(h_pos_m**2, axis=1)
+            h_neg_m = np.maximum(x_neg @ state.W.T + b_minus, 0)
+            g_neg_m = np.mean(h_neg_m**2, axis=1)
+            loss_m, _, _ = compute_loss(g_pos_m, g_neg_m, cfg.threshold)
+
+            numerical_db[i] = (loss_p - loss_m) / (2 * eps)
+
+        np.testing.assert_allclose(analytic_db, numerical_db, atol=1e-4, rtol=1e-3)
 
 
 class TestTrainLayer:

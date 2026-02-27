@@ -15,6 +15,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from synfire.core.config import FFLayerConfig, NormConfig, WindowConfig
+from synfire.evaluation import mann_whitney_auc as _mw_auc
 from synfire.layers.ff_layer import forward, goodness, init_layer, train_layer
 from synfire.preprocessing.normalization import normalize_windows
 from synfire.preprocessing.windows import (
@@ -50,22 +51,6 @@ def generate_sine_with_anomalies(
 
     train_series = np.sin(2 * np.pi * np.arange(split, dtype=np.float64) / period)
     return train_series, series, anomaly_positions
-
-
-def mann_whitney_auc(scores_pos: NDArray, scores_neg: NDArray) -> float:
-    """Compute AUC-ROC via Mann-Whitney U statistic.
-
-    Here 'positive' means anomaly (higher score = more anomalous).
-    """
-    n_pos = len(scores_pos)
-    n_neg = len(scores_neg)
-
-    # Count how often an anomaly score exceeds a normal score
-    u = 0.0
-    for sp in scores_pos:
-        u += np.sum(sp > scores_neg) + 0.5 * np.sum(sp == scores_neg)
-
-    return u / (n_pos * n_neg)
 
 
 def run_validation(verbose: bool = True) -> float:
@@ -131,7 +116,7 @@ def run_validation(verbose: bool = True) -> float:
     normal_scores = anomaly_scores[~labels]
     anomaly_scores_pos = anomaly_scores[labels]
 
-    auc = mann_whitney_auc(anomaly_scores_pos, normal_scores)
+    auc = _mw_auc(anomaly_scores, labels.astype(float))
 
     if verbose:
         print(f"Normal windows: {len(normal_scores)}, Anomaly windows: {len(anomaly_scores_pos)}")

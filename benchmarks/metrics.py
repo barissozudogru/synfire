@@ -5,6 +5,8 @@ from __future__ import annotations
 import numpy as np
 from numpy.typing import NDArray
 
+from synfire.evaluation import mann_whitney_auc
+
 
 def auc_roc(scores: NDArray, labels: NDArray) -> float:
     """Compute AUC-ROC via Mann-Whitney U statistic.
@@ -16,17 +18,7 @@ def auc_roc(scores: NDArray, labels: NDArray) -> float:
     Returns:
         AUC-ROC in [0, 1].
     """
-    mask = labels.astype(bool)
-    pos = scores[mask]
-    neg = scores[~mask]
-
-    if len(pos) == 0 or len(neg) == 0:
-        return 0.5
-
-    comparisons = pos[:, np.newaxis] > neg[np.newaxis, :]
-    ties = pos[:, np.newaxis] == neg[np.newaxis, :]
-    u = comparisons.sum() + 0.5 * ties.sum()
-    return float(u / (len(pos) * len(neg)))
+    return mann_whitney_auc(scores, labels)
 
 
 def precision_at_k(scores: NDArray, labels: NDArray, k: int) -> float:
