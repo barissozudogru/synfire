@@ -116,7 +116,7 @@ def run_all(verbose: bool = True) -> dict:
         for method_name in methods:
             aucs = all_aucs[method_name]
             wins = 0
-            for i, ds in enumerate(ds_names):
+            for i, _ds in enumerate(ds_names):
                 best_auc = max(all_aucs[m][i] for m in methods)
                 if all_aucs[method_name][i] >= best_auc - 1e-10:
                     wins += 1

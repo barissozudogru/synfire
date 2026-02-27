@@ -2,7 +2,6 @@ import numpy as np
 
 from synfire.core.config import FFLayerConfig, WindowConfig
 from synfire.layers.ff_layer import (
-    FFLayerState,
     compute_loss,
     forward,
     goodness,
@@ -118,9 +117,6 @@ class TestGradientCorrectness:
             for j in range(state.W.shape[1]):
                 W_plus = state.W.copy()
                 W_plus[i, j] += eps
-                s_plus = FFLayerState(W=W_plus, b=state.b.copy(), config=cfg)
-                _, loss_plus = train_step.__wrapped__(s_plus, x_pos, x_neg) if hasattr(train_step, '__wrapped__') else (None, None)
-                # Compute loss directly
                 h_pos_p = np.maximum(x_pos @ W_plus.T + state.b, 0)
                 g_pos_p = np.mean(h_pos_p**2, axis=1)
                 h_neg_p = np.maximum(x_neg @ W_plus.T + state.b, 0)

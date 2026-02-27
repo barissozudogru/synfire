@@ -194,7 +194,10 @@ class SynfirePipeline:
         ws = self.config.window.window_size
         dims = self.config.ff_stack.layer_dims
         n_proto = self.config.hebbian.n_prototypes
-        return f"SynfirePipeline({status}, window_size={ws}, layer_dims={dims}, n_prototypes={n_proto})"
+        return (
+            f"SynfirePipeline({status}, window_size={ws}, "
+            f"layer_dims={dims}, n_prototypes={n_proto})"
+        )
 
     def save(self, path: str | Path) -> None:
         """Save the fitted pipeline to an .npz file.
