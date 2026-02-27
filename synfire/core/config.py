@@ -50,6 +50,9 @@ class AnomalyConfig:
     weight_goodness: float = 0.5
     weight_distance: float = 0.3
     weight_transition: float = 0.2
+    use_goodness: bool = True
+    use_distance: bool = True
+    use_transition: bool = True
 
 
 @dataclass(frozen=True)
