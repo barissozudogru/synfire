@@ -1,6 +1,14 @@
 import numpy as np
+import pytest
 
-from synfire.core.config import FFLayerConfig, NormConfig, WindowConfig
+from synfire import SynfireConfig, SynfirePipeline
+from synfire.core.config import (
+    FFLayerConfig,
+    FFStackConfig,
+    HebbianConfig,
+    NormConfig,
+    WindowConfig,
+)
 from synfire.layers.ff_layer import forward, goodness, init_layer, train_layer
 from synfire.preprocessing.normalization import normalize_windows
 from synfire.preprocessing.windows import (
@@ -73,3 +81,68 @@ class TestPhase0Integration:
         assert len(g_normal) > 0
         assert len(g_anomaly) > 0
         assert g.shape[0] == len(test_l)
+
+
+class TestSynfirePipeline:
+    """End-to-end tests for the unified SynfirePipeline API."""
+
+    @pytest.fixture
+    def small_config(self):
+        return SynfireConfig(
+            window=WindowConfig(window_size=20, stride=1),
+            norm=NormConfig(method="zscore"),
+            ff_stack=FFStackConfig(
+                layer_dims=(32, 16), lr=0.01, threshold=2.0, epochs_per_layer=30
+            ),
+            hebbian=HebbianConfig(
+                n_prototypes=4, lr=0.05, inhibition_strength=0.01, epochs=10
+            ),
+        )
+
+    def test_fit_returns_self(self, sine_series, small_config):
+        pipeline = SynfirePipeline(small_config)
+        result = pipeline.fit(sine_series)
+        assert result is pipeline
+
+    def test_not_fitted_raises(self, sine_series):
+        pipeline = SynfirePipeline()
+        with pytest.raises(RuntimeError, match="not fitted"):
+            pipeline.anomaly_scores(sine_series)
+        with pytest.raises(RuntimeError, match="not fitted"):
+            pipeline.cluster(sine_series)
+        with pytest.raises(RuntimeError, match="not fitted"):
+            pipeline.transform(sine_series)
+
+    def test_anomaly_scores_shape(self, sine_series, small_config):
+        pipeline = SynfirePipeline(small_config)
+        pipeline.fit(sine_series)
+        scores = pipeline.anomaly_scores(sine_series)
+        expected_n = (len(sine_series) - 20) // 1 + 1 - 1
+        assert scores.shape == (expected_n,)
+
+    def test_cluster_shape(self, sine_series, small_config):
+        pipeline = SynfirePipeline(small_config)
+        pipeline.fit(sine_series)
+        clusters = pipeline.cluster(sine_series)
+        expected_n = (len(sine_series) - 20) // 1 + 1 - 1
+        assert clusters.shape == (expected_n,)
+        assert np.all(clusters >= 0) and np.all(clusters < 4)
+
+    def test_transform_shape(self, sine_series, small_config):
+        pipeline = SynfirePipeline(small_config)
+        pipeline.fit(sine_series)
+        reps = pipeline.transform(sine_series)
+        expected_n = (len(sine_series) - 20) // 1 + 1 - 1
+        assert reps.shape == (expected_n, 16)  # last layer dim
+
+    def test_default_config_works(self, sine_series):
+        pipeline = SynfirePipeline()
+        pipeline.fit(sine_series)
+        scores = pipeline.anomaly_scores(sine_series)
+        assert len(scores) > 0
+        assert np.all(np.isfinite(scores))
+
+    def test_import_from_package(self):
+        from synfire import SynfirePipeline as SP
+
+        assert SP is SynfirePipeline
