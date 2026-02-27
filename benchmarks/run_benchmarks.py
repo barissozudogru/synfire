@@ -15,29 +15,10 @@ from benchmarks.baselines import ZScoreBaseline
 from benchmarks.metrics import auc_roc, best_f1, precision_at_k
 from benchmarks.synthetic_datasets import ALL_DATASETS
 from synfire import SynfireConfig, SynfirePipeline
-from synfire.core.config import (
-    AnomalyConfig,
-    FFStackConfig,
-    HebbianConfig,
-    NormConfig,
-    WindowConfig,
-)
 
 
 def get_synfire_config() -> SynfireConfig:
-    return SynfireConfig(
-        window=WindowConfig(window_size=20, stride=1),
-        norm=NormConfig(method="zscore"),
-        ff_stack=FFStackConfig(
-            layer_dims=(64, 32), lr=0.01, threshold=2.0, epochs_per_layer=100,
-        ),
-        hebbian=HebbianConfig(
-            n_prototypes=8, lr=0.01, inhibition_strength=0.1, epochs=50,
-        ),
-        anomaly=AnomalyConfig(
-            weight_goodness=0.5, weight_distance=0.3, weight_transition=0.2,
-        ),
-    )
+    return SynfireConfig()  # uses tuned defaults from config.py
 
 
 class SynfireAdapter:
@@ -75,6 +56,7 @@ def run_all(verbose: bool = True) -> dict:
     # Try to add sklearn baselines (requires optional benchmark deps)
     try:
         import sklearn  # noqa: F401
+
         from benchmarks.baselines import WindowedIsolationForest, WindowedLOF
         methods["iforest"] = WindowedIsolationForest(window_size=20)
         methods["lof"] = WindowedLOF(window_size=20, n_neighbors=15)

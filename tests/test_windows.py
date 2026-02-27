@@ -40,9 +40,10 @@ class TestSlidingWindows:
             sliding_windows(series, cfg)
 
     def test_default_config(self, sine_series):
+        default_ws = WindowConfig().window_size
         windows = sliding_windows(sine_series)
-        expected_n = (len(sine_series) - 20) // 1 + 1
-        assert windows.shape == (expected_n, 20)
+        expected_n = (len(sine_series) - default_ws) // 1 + 1
+        assert windows.shape == (expected_n, default_ws)
 
     def test_window_content_correct(self):
         series = np.arange(50, dtype=np.float64)
