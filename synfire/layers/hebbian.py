@@ -34,7 +34,8 @@ def _kmeans_plus_plus_init(
             axis=1,
         )
         # Sample proportional to distance squared
-        probs = dists / dists.sum()
+        total = dists.sum()
+        probs = np.ones(n) / n if total < 1e-12 else dists / total
         idx = rng.choice(n, p=probs)
         prototypes[i] = data[idx]
 

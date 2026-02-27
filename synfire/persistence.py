@@ -92,9 +92,8 @@ def save_pipeline(pipeline, path: str | Path) -> None:
         raise TypeError(f"Expected SynfirePipeline, got {type(pipeline).__name__}")
 
     pipeline._check_fitted()
-    assert pipeline._stack is not None
-    assert pipeline._hebbian is not None
-    assert pipeline._anomaly_scaler is not None
+    if pipeline._stack is None or pipeline._hebbian is None or pipeline._anomaly_scaler is None:
+        raise RuntimeError("Pipeline state is corrupted: missing stack, hebbian, or scaler.")
 
     arrays: dict[str, NDArray] = {}
 

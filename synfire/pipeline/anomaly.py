@@ -87,9 +87,11 @@ def _compute_components(
     config: AnomalyConfig,
     threshold: float,
     trans_prob: NDArray | None = None,
+    activations: list[NDArray] | None = None,
 ) -> tuple[NDArray | None, NDArray | None, NDArray | None]:
     """Compute the three raw scoring components (before normalization)."""
-    activations = forward_stack(stack, x)
+    if activations is None:
+        activations = forward_stack(stack, x)
     representations = activations[-1]
 
     goodness_deficit = threshold - goodness(representations) if config.use_goodness else None
@@ -124,14 +126,15 @@ def fit_anomaly_scaler(
     Returns:
         AnomalyScaler with fixed normalization stats and transition matrix.
     """
-    # Build training transition matrix
-    activations = forward_stack(stack, x_train)
-    representations = activations[-1]
+    # Build training transition matrix (single forward pass, reused below)
+    train_activations = forward_stack(stack, x_train)
+    representations = train_activations[-1]
     labels = assign(hebbian, representations)
     train_trans_prob = _build_transition_matrix(labels, hebbian.config.n_prototypes)
 
     g_def, dist, surprise = _compute_components(
-        stack, hebbian, x_train, config, threshold, trans_prob=train_trans_prob,
+        stack, hebbian, x_train, config, threshold,
+        trans_prob=train_trans_prob, activations=train_activations,
     )
 
     def _stats(arr: NDArray | None) -> tuple[float, float]:
