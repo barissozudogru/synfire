@@ -178,6 +178,24 @@ class SynfirePipeline:
         test_pairs = self._prepare_test_pairs(series)
         return get_representation(self._stack, test_pairs)
 
+    def fit_transform(self, series: NDArray) -> NDArray:
+        """Fit the pipeline and return learned representations.
+
+        Args:
+            series: 1D array of shape (T,) or 2D of shape (T, C).
+
+        Returns:
+            Representations of shape (N-1, repr_dim).
+        """
+        return self.fit(series).transform(series)
+
+    def __repr__(self) -> str:
+        status = "fitted" if self._fitted else "unfitted"
+        ws = self.config.window.window_size
+        dims = self.config.ff_stack.layer_dims
+        n_proto = self.config.hebbian.n_prototypes
+        return f"SynfirePipeline({status}, window_size={ws}, layer_dims={dims}, n_prototypes={n_proto})"
+
     def save(self, path: str | Path) -> None:
         """Save the fitted pipeline to an .npz file.
 

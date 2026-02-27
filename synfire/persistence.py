@@ -4,9 +4,13 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
 from numpy.typing import NDArray
+
+if TYPE_CHECKING:
+    from synfire.api import SynfirePipeline
 
 from synfire.core.config import (
     AnomalyConfig,
@@ -69,7 +73,7 @@ def _config_from_dict(d: dict) -> SynfireConfig:
     )
 
 
-def save_pipeline(pipeline, path: str | Path) -> None:
+def save_pipeline(pipeline: SynfirePipeline, path: str | Path) -> None:
     """Serialize a fitted SynfirePipeline to an .npz file.
 
     The file contains:
@@ -134,7 +138,7 @@ def save_pipeline(pipeline, path: str | Path) -> None:
     np.savez(str(path), **arrays)  # type: ignore[arg-type]
 
 
-def load_pipeline(path: str | Path):
+def load_pipeline(path: str | Path) -> SynfirePipeline:
     """Deserialize a SynfirePipeline from an .npz file.
 
     Args:
