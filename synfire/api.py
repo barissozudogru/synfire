@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -150,3 +152,30 @@ class SynfirePipeline:
         self._check_fitted()
         test_pairs = self._prepare_test_pairs(series)
         return get_representation(self._stack, test_pairs)
+
+    def save(self, path: str | Path) -> None:
+        """Save the fitted pipeline to an .npz file.
+
+        Args:
+            path: Destination file path.
+
+        Raises:
+            RuntimeError: If the pipeline is not fitted.
+        """
+        from synfire.persistence import save_pipeline
+
+        save_pipeline(self, path)
+
+    @classmethod
+    def load(cls, path: str | Path) -> SynfirePipeline:
+        """Load a fitted pipeline from an .npz file.
+
+        Args:
+            path: Path to the .npz file.
+
+        Returns:
+            A fitted SynfirePipeline instance.
+        """
+        from synfire.persistence import load_pipeline
+
+        return load_pipeline(path)
