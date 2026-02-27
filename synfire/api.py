@@ -8,7 +8,7 @@ from numpy.typing import NDArray
 from synfire.core.config import SynfireConfig
 from synfire.layers.ff_stack import FFStackState, init_stack, train_stack
 from synfire.layers.hebbian import HebbianState, init_hebbian, train_hebbian
-from synfire.pipeline.anomaly import anomaly_scores
+from synfire.pipeline.anomaly import AnomalyScaler, anomaly_scores, fit_anomaly_scaler
 from synfire.pipeline.cluster import cluster_assign
 from synfire.pipeline.representation import get_representation
 from synfire.preprocessing.normalization import normalize_windows
@@ -37,6 +37,7 @@ class SynfirePipeline:
         self.config = config or SynfireConfig()
         self._stack: FFStackState | None = None
         self._hebbian: HebbianState | None = None
+        self._anomaly_scaler: AnomalyScaler | None = None
         self._fitted = False
 
     def _prepare_pairs(
@@ -86,6 +87,15 @@ class SynfirePipeline:
         hebbian = init_hebbian(representations, self.config.hebbian)
         self._hebbian = train_hebbian(hebbian, representations)
 
+        # Fit anomaly scaler on training data for deterministic scoring
+        self._anomaly_scaler = fit_anomaly_scaler(
+            self._stack,
+            self._hebbian,
+            x_pos,
+            self.config.anomaly,
+            self.config.ff_stack.threshold,
+        )
+
         self._fitted = True
         return self
 
@@ -111,6 +121,7 @@ class SynfirePipeline:
             test_pairs,
             self.config.anomaly,
             self.config.ff_stack.threshold,
+            scaler=self._anomaly_scaler,
         )
 
     def cluster(self, series: NDArray) -> NDArray:
