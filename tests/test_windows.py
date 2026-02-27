@@ -122,6 +122,5 @@ class TestNormalization:
         assert np.all(normed <= 1.0 + 1e-10)
 
     def test_unknown_method_raises(self, sine_series):
-        windows = sliding_windows(sine_series, WindowConfig(window_size=20))
-        with pytest.raises(ValueError, match="Unknown"):
-            normalize_windows(windows, NormConfig(method="invalid"))
+        with pytest.raises(ValueError, match="method must be"):
+            NormConfig(method="invalid")

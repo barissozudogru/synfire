@@ -21,6 +21,21 @@ from synfire.preprocessing.windows import (
 )
 
 
+def _validate_series(series: NDArray, window_size: int, method: str) -> None:
+    """Validate time series input for pipeline methods."""
+    if series.ndim not in (1, 2):
+        raise ValueError(f"{method}: series must be 1D or 2D, got ndim={series.ndim}")
+    if series.size == 0:
+        raise ValueError(f"{method}: series must be non-empty")
+    length = series.shape[0]
+    if length < window_size:
+        raise ValueError(
+            f"{method}: series length {length} is shorter than window_size={window_size}"
+        )
+    if not np.isfinite(series).all():
+        raise ValueError(f"{method}: series contains non-finite values (NaN or Inf)")
+
+
 class SynfirePipeline:
     """End-to-end pipeline: raw time series -> windows -> FF features -> Hebbian clusters.
 
@@ -73,6 +88,7 @@ class SynfirePipeline:
         Returns:
             self, for method chaining.
         """
+        _validate_series(series, self.config.window.window_size, "fit")
         rng = np.random.default_rng(self.config.ff_stack.seed)
 
         x_pos, x_neg = self._prepare_pairs(series, rng)
@@ -115,6 +131,7 @@ class SynfirePipeline:
             Scores of shape (N-1,) where N is the number of windows.
             Higher values indicate more anomalous regions.
         """
+        _validate_series(series, self.config.window.window_size, "anomaly_scores")
         self._check_fitted()
         if self._stack is None or self._hebbian is None:
             raise RuntimeError("Pipeline state is corrupted: missing stack or hebbian.")
@@ -137,6 +154,7 @@ class SynfirePipeline:
         Returns:
             Cluster indices of shape (N-1,).
         """
+        _validate_series(series, self.config.window.window_size, "cluster")
         self._check_fitted()
         if self._stack is None or self._hebbian is None:
             raise RuntimeError("Pipeline state is corrupted: missing stack or hebbian.")
@@ -153,6 +171,7 @@ class SynfirePipeline:
         Returns:
             Representations of shape (N-1, repr_dim).
         """
+        _validate_series(series, self.config.window.window_size, "transform")
         self._check_fitted()
         if self._stack is None:
             raise RuntimeError("Pipeline state is corrupted: missing stack.")
