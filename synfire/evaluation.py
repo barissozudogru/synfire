@@ -8,7 +8,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from synfire.api import SynfirePipeline
-from synfire.core.config import FFStackConfig, SynfireConfig
+from synfire.core.config import FFStackConfig, HebbianConfig, SynfireConfig
 
 
 def mann_whitney_auc(scores: NDArray, labels: NDArray) -> float:
@@ -62,7 +62,13 @@ def _config_with_seed(config: SynfireConfig, seed: int) -> SynfireConfig:
             epochs_per_layer=config.ff_stack.epochs_per_layer,
             seed=seed,
         ),
-        hebbian=config.hebbian,
+        hebbian=HebbianConfig(
+            n_prototypes=config.hebbian.n_prototypes,
+            lr=config.hebbian.lr,
+            inhibition_strength=config.hebbian.inhibition_strength,
+            epochs=config.hebbian.epochs,
+            seed=seed,
+        ),
         anomaly=config.anomaly,
     )
 
@@ -101,14 +107,9 @@ def evaluate_multi_seed(
         pipeline.fit(train)
         scores = pipeline.anomaly_scores(test)
 
-        # Align labels length with scores length
-        n_scores = len(scores)
-        if len(labels) > n_scores:
-            aligned_labels = labels[:n_scores]
-        else:
-            aligned_labels = labels
-
-        auc = mann_whitney_auc(scores, aligned_labels)
+        # Align labels and scores to the shorter length
+        n = min(len(scores), len(labels))
+        auc = mann_whitney_auc(scores[:n], labels[:n])
         auc_scores.append(auc)
 
     return EvaluationResult(seeds=seeds, auc_scores=auc_scores)

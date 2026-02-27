@@ -116,8 +116,8 @@ class SynfirePipeline:
             Higher values indicate more anomalous regions.
         """
         self._check_fitted()
-        assert self._stack is not None
-        assert self._hebbian is not None
+        if self._stack is None or self._hebbian is None:
+            raise RuntimeError("Pipeline state is corrupted: missing stack or hebbian.")
         test_pairs = self._prepare_test_pairs(series)
         return anomaly_scores(
             self._stack,
@@ -138,8 +138,8 @@ class SynfirePipeline:
             Cluster indices of shape (N-1,).
         """
         self._check_fitted()
-        assert self._stack is not None
-        assert self._hebbian is not None
+        if self._stack is None or self._hebbian is None:
+            raise RuntimeError("Pipeline state is corrupted: missing stack or hebbian.")
         test_pairs = self._prepare_test_pairs(series)
         representations = get_representation(self._stack, test_pairs)
         return cluster_assign(self._hebbian, representations)
@@ -154,7 +154,8 @@ class SynfirePipeline:
             Representations of shape (N-1, repr_dim).
         """
         self._check_fitted()
-        assert self._stack is not None
+        if self._stack is None:
+            raise RuntimeError("Pipeline state is corrupted: missing stack.")
         test_pairs = self._prepare_test_pairs(series)
         return get_representation(self._stack, test_pairs)
 
