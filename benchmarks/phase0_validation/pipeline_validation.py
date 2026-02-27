@@ -99,7 +99,7 @@ def run_multi_seed_validation(verbose: bool = True) -> float:
 
     if verbose:
         print("=== Multi-Seed Pipeline Validation ===")
-        for seed, auc in zip(result.seeds, result.auc_scores):
+        for seed, auc in zip(result.seeds, result.auc_scores, strict=True):
             print(f"  Seed {seed}: AUC = {auc:.4f}")
         print(f"  Mean AUC: {result.mean_auc:.4f} +/- {result.std_auc:.4f}")
         verdict = "PASS" if result.mean_auc > 0.70 else "FAIL"
