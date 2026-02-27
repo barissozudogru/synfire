@@ -76,11 +76,15 @@ class TestRandomPairs:
     def test_min_gap_respected(self, rng):
         series = np.arange(100, dtype=np.float64)
         windows = sliding_windows(series, WindowConfig(window_size=5, stride=1))
-        _, right = make_random_pairs(windows, rng, min_gap=5)
-        for i in range(len(windows)):
-            for j in range(len(windows)):
+        left, right = make_random_pairs(windows, rng, min_gap=5)
+        n = len(windows)
+        for i in range(n):
+            # Find which index the right window corresponds to
+            for j in range(n):
                 if np.array_equal(right[i], windows[j]):
-                    assert abs(i - j) >= 5 or abs(i - j) == 0
+                    # With circular offset, gap is min of forward and backward distance
+                    gap = min(abs(i - j), n - abs(i - j))
+                    assert gap >= 5, f"Gap {gap} < 5 for pair ({i}, {j})"
                     break
 
 
