@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Any, Literal
 
 
 @dataclass(frozen=True)
@@ -38,6 +39,19 @@ class FFLayerConfig:
     threshold: float = 2.0
     epochs: int = 30
     seed: int = 42
+    # Mini-batch size for training. 0 means full-batch (all pairs at once).
+    batch_size: int = 256
+    # Early stopping: stop if loss improvement < min_delta for `patience` consecutive epochs.
+    # Set patience=0 to disable early stopping.
+    early_stopping_patience: int = 0
+    early_stopping_min_delta: float = 1e-4
+    # LR schedule: "none"/"constant" keeps lr fixed; "cosine" applies cosine decay;
+    # "warmup_cosine" linearly warms up then applies cosine decay.
+    lr_schedule: Literal["none", "constant", "cosine", "warmup_cosine"] = "none"
+    # Fraction of total epochs used for linear warmup (only for "warmup_cosine").
+    lr_warmup_fraction: float = 0.1
+    # Gradient clipping: clip gradient norm to this value. 0.0 = disabled.
+    grad_clip_norm: float = 0.0
 
     def __post_init__(self) -> None:
         if self.input_dim < 1:
@@ -50,6 +64,27 @@ class FFLayerConfig:
             raise ValueError(f"threshold must be > 0, got {self.threshold}")
         if self.epochs < 1:
             raise ValueError(f"epochs must be >= 1, got {self.epochs}")
+        if self.batch_size < 0:
+            raise ValueError(f"batch_size must be >= 0, got {self.batch_size}")
+        if self.early_stopping_patience < 0:
+            raise ValueError(
+                f"early_stopping_patience must be >= 0, got {self.early_stopping_patience}"
+            )
+        if self.early_stopping_min_delta < 0:
+            raise ValueError(
+                f"early_stopping_min_delta must be >= 0, got {self.early_stopping_min_delta}"
+            )
+        if self.lr_schedule not in ("none", "constant", "cosine", "warmup_cosine"):
+            raise ValueError(
+                f"lr_schedule must be 'none', 'constant', 'cosine', or 'warmup_cosine', "
+                f"got {self.lr_schedule!r}"
+            )
+        if not (0.0 <= self.lr_warmup_fraction <= 1.0):
+            raise ValueError(
+                f"lr_warmup_fraction must be in [0, 1], got {self.lr_warmup_fraction}"
+            )
+        if self.grad_clip_norm < 0:
+            raise ValueError(f"grad_clip_norm must be >= 0, got {self.grad_clip_norm}")
 
 
 @dataclass(frozen=True)
@@ -59,6 +94,17 @@ class FFStackConfig:
     threshold: float = 2.0
     epochs_per_layer: int = 30
     seed: int = 42
+    # Mini-batch size forwarded to each FF layer (0 = full-batch).
+    batch_size: int = 256
+    # Early stopping patience forwarded to each FF layer (0 = disabled).
+    early_stopping_patience: int = 0
+    early_stopping_min_delta: float = 1e-4
+    # LR schedule applied to each layer.
+    lr_schedule: Literal["none", "constant", "cosine", "warmup_cosine"] = "none"
+    # Fraction of epochs for linear warmup (only for "warmup_cosine").
+    lr_warmup_fraction: float = 0.1
+    # Gradient clipping norm (0.0 = disabled).
+    grad_clip_norm: float = 0.0
 
     def __post_init__(self) -> None:
         if not self.layer_dims:
@@ -71,6 +117,23 @@ class FFStackConfig:
             raise ValueError(f"threshold must be > 0, got {self.threshold}")
         if self.epochs_per_layer < 1:
             raise ValueError(f"epochs_per_layer must be >= 1, got {self.epochs_per_layer}")
+        if self.batch_size < 0:
+            raise ValueError(f"batch_size must be >= 0, got {self.batch_size}")
+        if self.early_stopping_patience < 0:
+            raise ValueError(
+                f"early_stopping_patience must be >= 0, got {self.early_stopping_patience}"
+            )
+        if self.lr_schedule not in ("none", "constant", "cosine", "warmup_cosine"):
+            raise ValueError(
+                f"lr_schedule must be 'none', 'constant', 'cosine', or 'warmup_cosine', "
+                f"got {self.lr_schedule!r}"
+            )
+        if not (0.0 <= self.lr_warmup_fraction <= 1.0):
+            raise ValueError(
+                f"lr_warmup_fraction must be in [0, 1], got {self.lr_warmup_fraction}"
+            )
+        if self.grad_clip_norm < 0:
+            raise ValueError(f"grad_clip_norm must be >= 0, got {self.grad_clip_norm}")
 
 
 @dataclass(frozen=True)
@@ -102,6 +165,10 @@ class AnomalyConfig:
     use_goodness: bool = True
     use_distance: bool = True
     use_transition: bool = True
+    # When True, goodness is aggregated across ALL stack layers (weighted mean
+    # with later layers having higher weight), not just the final layer.
+    # This typically improves detection quality when the stack has >= 2 layers.
+    ensemble_goodness: bool = False
 
     def __post_init__(self) -> None:
         if self.weight_goodness < 0:
@@ -119,3 +186,77 @@ class SynfireConfig:
     ff_stack: FFStackConfig = field(default_factory=FFStackConfig)
     hebbian: HebbianConfig = field(default_factory=HebbianConfig)
     anomaly: AnomalyConfig = field(default_factory=AnomalyConfig)
+    # When True, after FF training the goodness threshold is recalibrated to the
+    # mean goodness of positive training samples. This makes the threshold
+    # data-driven rather than relying on the initial config value.
+    adaptive_threshold: bool = False
+
+    def replace(self, **kwargs: Any) -> SynfireConfig:
+        """Return a new SynfireConfig with the specified fields replaced.
+
+        Supports nested paths using double-underscore notation. For example::
+
+            config.replace(ff_stack__lr=0.01, hebbian__n_prototypes=8)
+
+        Top-level fields can also be replaced directly::
+
+            config.replace(adaptive_threshold=False)
+
+        Args:
+            **kwargs: Field replacements. Use ``parent__child=value`` to update
+                a nested config object.
+
+        Returns:
+            New ``SynfireConfig`` with the requested changes applied.
+
+        Raises:
+            ValueError: If an unrecognized field path is provided.
+        """
+        # Gather direct (top-level) replacements and nested ones separately.
+        direct: dict[str, Any] = {}
+        nested: dict[str, dict[str, Any]] = {}
+
+        top_field_names = {f.name for f in dataclasses.fields(self)}
+
+        for key, value in kwargs.items():
+            if "__" in key:
+                parent, child = key.split("__", 1)
+                if parent not in top_field_names:
+                    raise ValueError(
+                        f"Unknown top-level field {parent!r}. "
+                        f"Valid fields: {sorted(top_field_names)}"
+                    )
+                nested.setdefault(parent, {})[child] = value
+            else:
+                if key not in top_field_names:
+                    raise ValueError(
+                        f"Unknown field {key!r}. "
+                        f"Valid fields: {sorted(top_field_names)}"
+                    )
+                direct[key] = value
+
+        # Detect conflict: same parent used both as a direct replacement and as a nested path.
+        conflict = set(direct) & set(nested)
+        if conflict:
+            raise ValueError(
+                f"Field(s) {sorted(conflict)} appear in both direct and nested replacements. "
+                "Use either 'parent=value' or 'parent__child=value', not both."
+            )
+
+        # Apply nested replacements by creating new sub-config instances.
+        for parent_name, child_kwargs in nested.items():
+            current_sub = getattr(self, parent_name)
+            if not dataclasses.is_dataclass(current_sub):
+                raise ValueError(
+                    f"Cannot use nested path for non-dataclass field {parent_name!r}"
+                )
+            sub_field_names = {f.name for f in dataclasses.fields(current_sub)}
+            for child_key in child_kwargs:
+                if child_key not in sub_field_names:
+                    raise ValueError(
+                        f"Unknown field {parent_name}__{child_key!r}. "
+                        f"Valid fields for {parent_name!r}: {sorted(sub_field_names)}"
+                    )
+            direct[parent_name] = dataclasses.replace(current_sub, **child_kwargs)
+
+        return dataclasses.replace(self, **direct)
