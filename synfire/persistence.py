@@ -43,6 +43,10 @@ def _config_to_dict(config: SynfireConfig) -> dict:
             "lr_schedule": config.ff_stack.lr_schedule,
             "lr_warmup_fraction": config.ff_stack.lr_warmup_fraction,
             "grad_clip_norm": config.ff_stack.grad_clip_norm,
+            "optimizer": config.ff_stack.optimizer,
+            "weight_decay": config.ff_stack.weight_decay,
+            "layer_norm": config.ff_stack.layer_norm,
+            "negative_strategy": config.ff_stack.negative_strategy,
         },
         "hebbian": {
             "n_prototypes": config.hebbian.n_prototypes,
@@ -83,6 +87,10 @@ def _config_from_dict(d: dict) -> SynfireConfig:
             lr_schedule=ff_stack_d.get("lr_schedule", "none"),
             lr_warmup_fraction=ff_stack_d.get("lr_warmup_fraction", 0.1),
             grad_clip_norm=ff_stack_d.get("grad_clip_norm", 0.0),
+            optimizer=ff_stack_d.get("optimizer", "sgd"),
+            weight_decay=ff_stack_d.get("weight_decay", 0.0),
+            layer_norm=ff_stack_d.get("layer_norm", False),
+            negative_strategy=ff_stack_d.get("negative_strategy", "random"),
         ),
         hebbian=HebbianConfig(**d["hebbian"]),
         anomaly=AnomalyConfig(
