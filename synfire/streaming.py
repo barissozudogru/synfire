@@ -38,6 +38,8 @@ class StreamingScorer:
         self,
         pipeline: SynfirePipeline,
     ) -> None:
+        if not pipeline._fitted:
+            raise RuntimeError("Pipeline must be fitted before creating a StreamingScorer.")
         self._pipeline = pipeline
         self._window_size = pipeline.config.window.window_size
         # Buffer holds window_size + 1 raw scalar/vector values so we can form
