@@ -51,7 +51,15 @@ def init_hebbian(data: NDArray, config: HebbianConfig) -> HebbianState:
 
     Returns:
         Initialized HebbianState.
+
+    Raises:
+        ValueError: If n_prototypes exceeds the number of data points.
     """
+    if config.n_prototypes > len(data):
+        raise ValueError(
+            f"n_prototypes ({config.n_prototypes}) must not exceed the number of "
+            f"data points ({len(data)}). Reduce n_prototypes or provide more training data."
+        )
     rng = np.random.default_rng(config.seed)
     prototypes = _kmeans_plus_plus_init(data, config.n_prototypes, rng)
     return HebbianState(prototypes=prototypes, config=config)
@@ -116,17 +124,34 @@ def update_step(state: HebbianState, x: NDArray) -> HebbianState:
     displacement = mean_input - new_prototypes
     new_prototypes[active] += lr * displacement[active]
 
-    # Lateral inhibition: for each prototype, push away from non-assigned inputs
-    for j in range(n_proto):
-        non_winners = winners != j
-        if not np.any(non_winners):
-            continue
-        repel_inputs = x[non_winners]  # (M, D)
-        repel_vec = new_prototypes[j] - repel_inputs  # (M, D)
-        norms = np.linalg.norm(repel_vec, axis=1, keepdims=True) + 1e-12
-        repel_unit = repel_vec / norms
-        mean_repel = repel_unit.mean(axis=0)
-        new_prototypes[j] += inhibition * lr * mean_repel
+    # Lateral inhibition (vectorized): push each prototype away from non-assigned inputs.
+    # assignment_mask[j, i] = True if sample i was NOT won by prototype j.
+    # Shape: (n_proto, batch_size)
+    assignment_mask = (np.arange(n_proto)[:, np.newaxis] != winners[np.newaxis, :])
+
+    # Pairwise difference: proto_j - x_i for all (j, i).
+    # new_prototypes: (n_proto, D) -> (n_proto, 1, D)
+    # x:              (batch, D)  -> (1, batch, D)
+    # repel_vecs:     (n_proto, batch, D)
+    repel_vecs = new_prototypes[:, np.newaxis, :] - x[np.newaxis, :, :]
+
+    # Normalize to unit vectors
+    norms = np.linalg.norm(repel_vecs, axis=2, keepdims=True) + 1e-12
+    repel_units = repel_vecs / norms  # (n_proto, batch, D)
+
+    # Zero out winner contributions using the assignment mask
+    # mask: (n_proto, batch, 1) broadcast over D
+    mask = assignment_mask[:, :, np.newaxis].astype(repel_units.dtype)
+    masked_repel = repel_units * mask  # (n_proto, batch, D)
+
+    # Denominator: number of non-winner samples per prototype (avoid div-by-zero)
+    n_non_winners = assignment_mask.sum(axis=1, keepdims=True)[:, :, np.newaxis]  # (n_proto,1,1)
+    n_non_winners = np.maximum(n_non_winners, 1)
+
+    # Mean repulsion vector per prototype (n_proto, D)
+    mean_repel = masked_repel.sum(axis=1) / n_non_winners.squeeze(axis=(1, 2))[:, np.newaxis]
+
+    new_prototypes += inhibition * lr * mean_repel
 
     return HebbianState(prototypes=new_prototypes, config=state.config)
 

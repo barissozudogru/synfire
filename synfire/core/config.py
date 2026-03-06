@@ -52,6 +52,14 @@ class FFLayerConfig:
     lr_warmup_fraction: float = 0.1
     # Gradient clipping: clip gradient norm to this value. 0.0 = disabled.
     grad_clip_norm: float = 0.0
+    # Optimizer: "sgd" (default, backward compatible) or "adam".
+    optimizer: Literal["sgd", "adam"] = "sgd"
+    # Weight decay (L2 regularization) coefficient. 0.0 = disabled.
+    weight_decay: float = 0.0
+    # Layer normalization between linear transform and ReLU (Hinton's FF paper).
+    layer_norm: bool = False
+    # Negative sampling strategy: "random" (default), "hard", or "curriculum".
+    negative_strategy: Literal["random", "hard", "curriculum"] = "random"
 
     def __post_init__(self) -> None:
         if self.input_dim < 1:
@@ -85,6 +93,15 @@ class FFLayerConfig:
             )
         if self.grad_clip_norm < 0:
             raise ValueError(f"grad_clip_norm must be >= 0, got {self.grad_clip_norm}")
+        if self.optimizer not in ("sgd", "adam"):
+            raise ValueError(f"optimizer must be 'sgd' or 'adam', got {self.optimizer!r}")
+        if self.weight_decay < 0:
+            raise ValueError(f"weight_decay must be >= 0, got {self.weight_decay}")
+        if self.negative_strategy not in ("random", "hard", "curriculum"):
+            raise ValueError(
+                f"negative_strategy must be 'random', 'hard', or 'curriculum', "
+                f"got {self.negative_strategy!r}"
+            )
 
 
 @dataclass(frozen=True)
@@ -105,6 +122,14 @@ class FFStackConfig:
     lr_warmup_fraction: float = 0.1
     # Gradient clipping norm (0.0 = disabled).
     grad_clip_norm: float = 0.0
+    # Optimizer forwarded to each FF layer. "sgd" or "adam".
+    optimizer: Literal["sgd", "adam"] = "sgd"
+    # Weight decay forwarded to each FF layer.
+    weight_decay: float = 0.0
+    # Layer normalization forwarded to each FF layer.
+    layer_norm: bool = False
+    # Negative sampling strategy forwarded to each FF layer.
+    negative_strategy: Literal["random", "hard", "curriculum"] = "random"
 
     def __post_init__(self) -> None:
         if not self.layer_dims:
@@ -134,6 +159,15 @@ class FFStackConfig:
             )
         if self.grad_clip_norm < 0:
             raise ValueError(f"grad_clip_norm must be >= 0, got {self.grad_clip_norm}")
+        if self.optimizer not in ("sgd", "adam"):
+            raise ValueError(f"optimizer must be 'sgd' or 'adam', got {self.optimizer!r}")
+        if self.weight_decay < 0:
+            raise ValueError(f"weight_decay must be >= 0, got {self.weight_decay}")
+        if self.negative_strategy not in ("random", "hard", "curriculum"):
+            raise ValueError(
+                f"negative_strategy must be 'random', 'hard', or 'curriculum', "
+                f"got {self.negative_strategy!r}"
+            )
 
 
 @dataclass(frozen=True)
