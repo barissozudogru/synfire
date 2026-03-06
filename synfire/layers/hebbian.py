@@ -150,6 +150,12 @@ def update_step(state: HebbianState, x: NDArray) -> HebbianState:
 
     new_prototypes += inhibition * lr * mean_repel
 
+    if not np.all(np.isfinite(new_prototypes)):
+        raise RuntimeError(
+            "Non-finite values detected in Hebbian prototypes after update. "
+            "Try reducing the learning rate or inhibition_strength."
+        )
+
     return HebbianState(prototypes=new_prototypes, config=state.config)
 
 

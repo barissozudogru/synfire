@@ -43,7 +43,7 @@ def mann_whitney_auc(scores: NDArray, labels: NDArray) -> float:
     i = 0
     while i < n:
         j = i + 1
-        while j < n and sorted_scores[j] == sorted_scores[i]:
+        while j < n and abs(sorted_scores[j] - sorted_scores[i]) < 1e-12:
             j += 1
         if j - i > 1:
             avg = (ranks[order[i]] + ranks[order[j - 1]]) / 2.0
