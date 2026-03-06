@@ -34,7 +34,8 @@ def _kmeans_plus_plus_init(
             axis=1,
         )
         # Sample proportional to distance squared
-        probs = dists / dists.sum()
+        total = dists.sum()
+        probs = np.ones(n) / n if total < 1e-12 else dists / total
         idx = rng.choice(n, p=probs)
         prototypes[i] = data[idx]
 
@@ -99,18 +100,33 @@ def update_step(state: HebbianState, x: NDArray) -> HebbianState:
     new_prototypes = state.prototypes.copy()
     lr = state.config.lr
     inhibition = state.config.inhibition_strength
+    n_proto = state.config.n_prototypes
+    batch_size = len(x)
 
-    for i in range(len(x)):
-        w = winners[i]
-        diff = x[i] - new_prototypes[w]
-        # Hebbian: pull winner toward input
-        new_prototypes[w] += lr * diff
+    # Winner attraction: compute per-prototype mean displacement
+    one_hot = np.zeros((batch_size, n_proto))
+    one_hot[np.arange(batch_size), winners] = 1.0
+    counts = one_hot.sum(axis=0)  # (n_proto,)
+    # Sum of (x_i - prototype_j) for samples assigned to j
+    # x weighted by assignment: (n_proto, D)
+    weighted_sum = one_hot.T @ x  # (n_proto, D)
+    active = counts > 0
+    mean_input = np.zeros_like(new_prototypes)
+    mean_input[active] = weighted_sum[active] / counts[active, np.newaxis]
+    displacement = mean_input - new_prototypes
+    new_prototypes[active] += lr * displacement[active]
 
-        # Lateral inhibition: push non-winners away
-        for j in range(state.config.n_prototypes):
-            if j != w:
-                repel = new_prototypes[j] - x[i]
-                new_prototypes[j] += inhibition * lr * repel / (np.linalg.norm(repel) + 1e-12)
+    # Lateral inhibition: for each prototype, push away from non-assigned inputs
+    for j in range(n_proto):
+        non_winners = winners != j
+        if not np.any(non_winners):
+            continue
+        repel_inputs = x[non_winners]  # (M, D)
+        repel_vec = new_prototypes[j] - repel_inputs  # (M, D)
+        norms = np.linalg.norm(repel_vec, axis=1, keepdims=True) + 1e-12
+        repel_unit = repel_vec / norms
+        mean_repel = repel_unit.mean(axis=0)
+        new_prototypes[j] += inhibition * lr * mean_repel
 
     return HebbianState(prototypes=new_prototypes, config=state.config)
 

@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 from numpy.typing import NDArray
 
 from synfire.core.config import SynfireConfig
 from synfire.layers.ff_stack import FFStackState, init_stack, train_stack
 from synfire.layers.hebbian import HebbianState, init_hebbian, train_hebbian
-from synfire.pipeline.anomaly import anomaly_scores
+from synfire.pipeline.anomaly import AnomalyScaler, anomaly_scores, fit_anomaly_scaler
 from synfire.pipeline.cluster import cluster_assign
 from synfire.pipeline.representation import get_representation
 from synfire.preprocessing.normalization import normalize_windows
@@ -17,6 +19,21 @@ from synfire.preprocessing.windows import (
     make_random_pairs,
     sliding_windows,
 )
+
+
+def _validate_series(series: NDArray, window_size: int, method: str) -> None:
+    """Validate time series input for pipeline methods."""
+    if series.ndim not in (1, 2):
+        raise ValueError(f"{method}: series must be 1D or 2D, got ndim={series.ndim}")
+    if series.size == 0:
+        raise ValueError(f"{method}: series must be non-empty")
+    length = series.shape[0]
+    if length < window_size:
+        raise ValueError(
+            f"{method}: series length {length} is shorter than window_size={window_size}"
+        )
+    if not np.isfinite(series).all():
+        raise ValueError(f"{method}: series contains non-finite values (NaN or Inf)")
 
 
 class SynfirePipeline:
@@ -37,6 +54,7 @@ class SynfirePipeline:
         self.config = config or SynfireConfig()
         self._stack: FFStackState | None = None
         self._hebbian: HebbianState | None = None
+        self._anomaly_scaler: AnomalyScaler | None = None
         self._fitted = False
 
     def _prepare_pairs(
@@ -70,6 +88,7 @@ class SynfirePipeline:
         Returns:
             self, for method chaining.
         """
+        _validate_series(series, self.config.window.window_size, "fit")
         rng = np.random.default_rng(self.config.ff_stack.seed)
 
         x_pos, x_neg = self._prepare_pairs(series, rng)
@@ -85,6 +104,15 @@ class SynfirePipeline:
         # Train Hebbian layer
         hebbian = init_hebbian(representations, self.config.hebbian)
         self._hebbian = train_hebbian(hebbian, representations)
+
+        # Fit anomaly scaler on training data for deterministic scoring
+        self._anomaly_scaler = fit_anomaly_scaler(
+            self._stack,
+            self._hebbian,
+            x_pos,
+            self.config.anomaly,
+            self.config.ff_stack.threshold,
+        )
 
         self._fitted = True
         return self
@@ -103,7 +131,10 @@ class SynfirePipeline:
             Scores of shape (N-1,) where N is the number of windows.
             Higher values indicate more anomalous regions.
         """
+        _validate_series(series, self.config.window.window_size, "anomaly_scores")
         self._check_fitted()
+        if self._stack is None or self._hebbian is None:
+            raise RuntimeError("Pipeline state is corrupted: missing stack or hebbian.")
         test_pairs = self._prepare_test_pairs(series)
         return anomaly_scores(
             self._stack,
@@ -111,6 +142,7 @@ class SynfirePipeline:
             test_pairs,
             self.config.anomaly,
             self.config.ff_stack.threshold,
+            scaler=self._anomaly_scaler,
         )
 
     def cluster(self, series: NDArray) -> NDArray:
@@ -122,7 +154,10 @@ class SynfirePipeline:
         Returns:
             Cluster indices of shape (N-1,).
         """
+        _validate_series(series, self.config.window.window_size, "cluster")
         self._check_fitted()
+        if self._stack is None or self._hebbian is None:
+            raise RuntimeError("Pipeline state is corrupted: missing stack or hebbian.")
         test_pairs = self._prepare_test_pairs(series)
         representations = get_representation(self._stack, test_pairs)
         return cluster_assign(self._hebbian, representations)
@@ -136,6 +171,57 @@ class SynfirePipeline:
         Returns:
             Representations of shape (N-1, repr_dim).
         """
+        _validate_series(series, self.config.window.window_size, "transform")
         self._check_fitted()
+        if self._stack is None:
+            raise RuntimeError("Pipeline state is corrupted: missing stack.")
         test_pairs = self._prepare_test_pairs(series)
         return get_representation(self._stack, test_pairs)
+
+    def fit_transform(self, series: NDArray) -> NDArray:
+        """Fit the pipeline and return learned representations.
+
+        Args:
+            series: 1D array of shape (T,) or 2D of shape (T, C).
+
+        Returns:
+            Representations of shape (N-1, repr_dim).
+        """
+        return self.fit(series).transform(series)
+
+    def __repr__(self) -> str:
+        status = "fitted" if self._fitted else "unfitted"
+        ws = self.config.window.window_size
+        dims = self.config.ff_stack.layer_dims
+        n_proto = self.config.hebbian.n_prototypes
+        return (
+            f"SynfirePipeline({status}, window_size={ws}, "
+            f"layer_dims={dims}, n_prototypes={n_proto})"
+        )
+
+    def save(self, path: str | Path) -> None:
+        """Save the fitted pipeline to an .npz file.
+
+        Args:
+            path: Destination file path.
+
+        Raises:
+            RuntimeError: If the pipeline is not fitted.
+        """
+        from synfire.persistence import save_pipeline
+
+        save_pipeline(self, path)
+
+    @classmethod
+    def load(cls, path: str | Path) -> SynfirePipeline:
+        """Load a fitted pipeline from an .npz file.
+
+        Args:
+            path: Path to the .npz file.
+
+        Returns:
+            A fitted SynfirePipeline instance.
+        """
+        from synfire.persistence import load_pipeline
+
+        return load_pipeline(path)

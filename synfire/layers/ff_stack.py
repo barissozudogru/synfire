@@ -26,7 +26,7 @@ def init_stack(input_dim: int, config: FFStackConfig) -> FFStackState:
     current_dim = input_dim
     rng = np.random.default_rng(config.seed)
 
-    for i, hidden_dim in enumerate(config.layer_dims):
+    for _i, hidden_dim in enumerate(config.layer_dims):
         layer_cfg = FFLayerConfig(
             input_dim=current_dim,
             hidden_dim=hidden_dim,

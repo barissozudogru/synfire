@@ -3,6 +3,7 @@ import pytest
 
 from synfire import SynfireConfig, SynfirePipeline
 from synfire.core.config import (
+    AnomalyConfig,
     FFLayerConfig,
     FFStackConfig,
     HebbianConfig,
@@ -146,3 +147,138 @@ class TestSynfirePipeline:
         from synfire import SynfirePipeline as SP
 
         assert SP is SynfirePipeline
+
+
+class TestAnomalyScoreDeterminism:
+    """Verify that anomaly scores are batch-independent after fit."""
+
+    @pytest.fixture
+    def fitted_pipeline(self, sine_series):
+        config = SynfireConfig(
+            window=WindowConfig(window_size=20, stride=1),
+            ff_stack=FFStackConfig(layer_dims=(32, 16), lr=0.01, epochs_per_layer=30),
+            hebbian=HebbianConfig(n_prototypes=4, lr=0.05, inhibition_strength=0.01, epochs=10),
+        )
+        pipeline = SynfirePipeline(config)
+        pipeline.fit(sine_series)
+        return pipeline
+
+    def test_anomaly_score_determinism(self, fitted_pipeline, sine_series):
+        """Same input scored in different batch contexts must produce identical scores."""
+        full_scores = fitted_pipeline.anomaly_scores(sine_series)
+
+        # Score a subset -- same data, different batch context
+        half = len(sine_series) // 2 + 20  # enough for at least some windows
+        subset_scores = fitted_pipeline.anomaly_scores(sine_series[:half])
+
+        # Overlapping region should have identical scores
+        overlap = min(len(full_scores), len(subset_scores))
+        np.testing.assert_allclose(
+            full_scores[:overlap], subset_scores[:overlap], atol=1e-10,
+            err_msg="Scores differ between batch contexts -- normalization is batch-dependent"
+        )
+
+    def test_anomaly_scaler_stored_after_fit(self, fitted_pipeline):
+        assert fitted_pipeline._anomaly_scaler is not None
+        assert isinstance(fitted_pipeline._anomaly_scaler.goodness_min, float)
+        assert isinstance(fitted_pipeline._anomaly_scaler.goodness_range, float)
+
+
+class TestAblation:
+    """Verify ablation toggles work correctly."""
+
+    @pytest.fixture
+    def base_config(self):
+        return SynfireConfig(
+            window=WindowConfig(window_size=20, stride=1),
+            ff_stack=FFStackConfig(layer_dims=(32, 16), lr=0.01, epochs_per_layer=30),
+            hebbian=HebbianConfig(n_prototypes=4, lr=0.05, inhibition_strength=0.01, epochs=10),
+        )
+
+    def test_ablation_goodness_only(self, sine_series, base_config):
+        config = SynfireConfig(
+            window=base_config.window,
+            norm=base_config.norm,
+            ff_stack=base_config.ff_stack,
+            hebbian=base_config.hebbian,
+            anomaly=AnomalyConfig(
+                weight_goodness=1.0, weight_distance=0.0, weight_transition=0.0,
+                use_goodness=True, use_distance=False, use_transition=False,
+            ),
+        )
+        pipeline = SynfirePipeline(config)
+        pipeline.fit(sine_series)
+        scores = pipeline.anomaly_scores(sine_series)
+        assert len(scores) > 0
+        assert np.all(np.isfinite(scores))
+
+    def test_ablation_distance_only(self, sine_series, base_config):
+        config = SynfireConfig(
+            window=base_config.window,
+            norm=base_config.norm,
+            ff_stack=base_config.ff_stack,
+            hebbian=base_config.hebbian,
+            anomaly=AnomalyConfig(
+                weight_goodness=0.0, weight_distance=1.0, weight_transition=0.0,
+                use_goodness=False, use_distance=True, use_transition=False,
+            ),
+        )
+        pipeline = SynfirePipeline(config)
+        pipeline.fit(sine_series)
+        scores = pipeline.anomaly_scores(sine_series)
+        assert len(scores) > 0
+        assert np.all(np.isfinite(scores))
+
+
+class TestInputValidation:
+    """Test that invalid series inputs are rejected with clear errors."""
+
+    def test_nan_series_rejected(self):
+        pipeline = SynfirePipeline()
+        series = np.array([1.0, 2.0, np.nan, 4.0] * 100)
+        with pytest.raises(ValueError, match="non-finite"):
+            pipeline.fit(series)
+
+    def test_inf_series_rejected(self):
+        pipeline = SynfirePipeline()
+        series = np.array([1.0, np.inf, 3.0, 4.0] * 100)
+        with pytest.raises(ValueError, match="non-finite"):
+            pipeline.fit(series)
+
+    def test_3d_series_rejected(self):
+        pipeline = SynfirePipeline()
+        series = np.ones((10, 5, 3))
+        with pytest.raises(ValueError, match="1D or 2D"):
+            pipeline.fit(series)
+
+    def test_empty_series_rejected(self):
+        pipeline = SynfirePipeline()
+        series = np.array([])
+        with pytest.raises(ValueError, match="non-empty"):
+            pipeline.fit(series)
+
+    def test_too_short_series_rejected(self):
+        pipeline = SynfirePipeline(SynfireConfig(window=WindowConfig(window_size=50)))
+        series = np.arange(30, dtype=np.float64)
+        with pytest.raises(ValueError, match="shorter than window_size"):
+            pipeline.fit(series)
+
+
+class TestConfigValidation:
+    """Test that invalid config values are rejected at construction time."""
+
+    def test_zero_window_size_rejected(self):
+        with pytest.raises(ValueError, match="window_size must be >= 1"):
+            WindowConfig(window_size=0)
+
+    def test_negative_lr_rejected(self):
+        with pytest.raises(ValueError, match="lr must be > 0"):
+            FFStackConfig(lr=-0.01)
+
+    def test_zero_prototypes_rejected(self):
+        with pytest.raises(ValueError, match="n_prototypes must be >= 1"):
+            HebbianConfig(n_prototypes=0)
+
+    def test_negative_weight_rejected(self):
+        with pytest.raises(ValueError, match="weight_goodness must be >= 0"):
+            AnomalyConfig(weight_goodness=-1.0)

@@ -19,6 +19,10 @@ jobs:
       - name: Install dependencies
         run: poetry install
       - name: Lint
-        run: poetry run ruff check synfire/ tests/
+        run: poetry run ruff check synfire/ tests/ benchmarks/
+      - name: Type check
+        run: poetry run pyright synfire/
       - name: Test
         run: poetry run pytest -v
+      - name: Phase 0 Validation
+        run: poetry run python -m benchmarks.phase0_validation.pipeline_validation
