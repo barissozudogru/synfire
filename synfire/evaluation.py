@@ -8,11 +8,14 @@ import numpy as np
 from numpy.typing import NDArray
 
 from synfire.api import SynfirePipeline
-from synfire.core.config import FFStackConfig, HebbianConfig, SynfireConfig
+from synfire.core.config import SynfireConfig
 
 
 def mann_whitney_auc(scores: NDArray, labels: NDArray) -> float:
-    """Compute AUC-ROC via Mann-Whitney U statistic.
+    """Compute AUC-ROC via Mann-Whitney U statistic (O(N log N) sort-based).
+
+    Uses rank-sum method to avoid the O(n_pos * n_neg) memory of the
+    broadcasting approach, making it safe for large datasets.
 
     Args:
         scores: Anomaly scores of shape (N,). Higher = more anomalous.
@@ -21,19 +24,37 @@ def mann_whitney_auc(scores: NDArray, labels: NDArray) -> float:
     Returns:
         AUC-ROC score in [0, 1].
     """
-    pos = scores[labels.astype(bool)]
-    neg = scores[~labels.astype(bool)]
+    labels_bool = labels.astype(bool)
+    n_pos = int(labels_bool.sum())
+    n_neg = int((~labels_bool).sum())
 
-    if len(pos) == 0 or len(neg) == 0:
+    if n_pos == 0 or n_neg == 0:
         return 0.5
 
-    # Vectorized: count how often pos > neg
-    # Using broadcasting: (n_pos, 1) vs (1, n_neg)
-    comparisons = pos[:, np.newaxis] > neg[np.newaxis, :]
-    ties = pos[:, np.newaxis] == neg[np.newaxis, :]
-    u = comparisons.sum() + 0.5 * ties.sum()
+    n = len(scores)
+    # Stable sort: ties broken by original order (stable mergesort).
+    order = np.argsort(scores, kind="mergesort")
+    # Assign ranks 1..N; average tied ranks.
+    ranks = np.empty(n, dtype=np.float64)
+    ranks[order] = np.arange(1, n + 1, dtype=np.float64)
 
-    return float(u / (len(pos) * len(neg)))
+    # Resolve ties by averaging ranks for equal score values.
+    sorted_scores = scores[order]
+    i = 0
+    while i < n:
+        j = i + 1
+        while j < n and sorted_scores[j] == sorted_scores[i]:
+            j += 1
+        if j - i > 1:
+            avg = (ranks[order[i]] + ranks[order[j - 1]]) / 2.0
+            ranks[order[i:j]] = avg
+        i = j
+
+    # U statistic = sum of positive ranks - n_pos*(n_pos+1)/2
+    rank_sum_pos = float(ranks[labels_bool].sum())
+    u = rank_sum_pos - n_pos * (n_pos + 1) / 2.0
+
+    return float(u / (n_pos * n_neg))
 
 
 @dataclass
@@ -51,26 +72,8 @@ class EvaluationResult:
 
 
 def _config_with_seed(config: SynfireConfig, seed: int) -> SynfireConfig:
-    """Create a copy of config with a different random seed."""
-    return SynfireConfig(
-        window=config.window,
-        norm=config.norm,
-        ff_stack=FFStackConfig(
-            layer_dims=config.ff_stack.layer_dims,
-            lr=config.ff_stack.lr,
-            threshold=config.ff_stack.threshold,
-            epochs_per_layer=config.ff_stack.epochs_per_layer,
-            seed=seed,
-        ),
-        hebbian=HebbianConfig(
-            n_prototypes=config.hebbian.n_prototypes,
-            lr=config.hebbian.lr,
-            inhibition_strength=config.hebbian.inhibition_strength,
-            epochs=config.hebbian.epochs,
-            seed=seed,
-        ),
-        anomaly=config.anomaly,
-    )
+    """Create a copy of config with a different random seed, preserving all other settings."""
+    return config.replace(ff_stack__seed=seed, hebbian__seed=seed)
 
 
 def evaluate_multi_seed(
