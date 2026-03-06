@@ -71,12 +71,38 @@ class StreamingScorer:
 
         Args:
             value: A scalar (univariate) or 1D array of shape (C,) (multivariate).
+                All calls after the first must supply a value with the same
+                number of channels ``C`` as the first call; a mismatch raises
+                ``ValueError`` immediately rather than silently corrupting the
+                window buffer.
 
         Returns:
             Anomaly score (float) once the buffer contains ``window_size + 1``
             points; ``None`` while the buffer is still filling.
+
+        Raises:
+            ValueError: If ``value`` has more than one dimension, or if its
+                channel count differs from previously ingested points.
         """
-        self._buffer.append(np.asarray(value, dtype=np.float64).ravel())
+        arr = np.asarray(value, dtype=np.float64).ravel()
+
+        if arr.ndim != 1:
+            # ravel() always returns 1-D, but guard against future edge cases.
+            raise ValueError(
+                f"score_point expects a scalar or 1-D array, got shape {np.asarray(value).shape}"
+            )
+
+        # Validate channel count consistency once the buffer has at least one entry.
+        if self._buffer:
+            expected_channels = self._buffer[0].shape[0]
+            if arr.shape[0] != expected_channels:
+                raise ValueError(
+                    f"Channel count mismatch: expected {expected_channels} channel(s) "
+                    f"based on previous inputs, got {arr.shape[0]}. "
+                    "All calls to score_point must supply the same number of channels."
+                )
+
+        self._buffer.append(arr)
 
         if len(self._buffer) < self._window_size + 1:
             return None
