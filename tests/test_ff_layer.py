@@ -1,7 +1,10 @@
 import numpy as np
+import pytest
 
 from synfire.core.config import FFLayerConfig, WindowConfig
 from synfire.layers.ff_layer import (
+    _HARD_NEG_ELEMENT_LIMIT,
+    _pairwise_sq_distances,
     compute_loss,
     forward,
     goodness,
@@ -209,3 +212,60 @@ class TestTrainLayer:
 
         # After training, positive goodness should be higher on average
         assert np.mean(g_pos) > np.mean(g_neg)
+
+
+class TestPairwiseSqDistances:
+    """Tests for the chunked pairwise squared-distance helper (H-1 fix)."""
+
+    def test_matches_broadcast_small(self):
+        """Chunked result matches the naive broadcast result for small inputs."""
+        rng = np.random.default_rng(0)
+        a = rng.standard_normal((20, 8))
+        b = rng.standard_normal((15, 8))
+        diff = a[:, np.newaxis, :] - b[np.newaxis, :, :]
+        expected = np.sum(diff ** 2, axis=2)
+        got = _pairwise_sq_distances(a, b)
+        np.testing.assert_allclose(got, expected, atol=1e-10)
+
+    def test_chunked_path_matches_broadcast(self):
+        """Force the chunked path by setting a tiny element limit and verify output."""
+        rng = np.random.default_rng(1)
+        a = rng.standard_normal((30, 6))
+        b = rng.standard_normal((25, 6))
+        diff = a[:, np.newaxis, :] - b[np.newaxis, :, :]
+        expected = np.sum(diff ** 2, axis=2)
+        # Patch the limit to force chunked path even for this small input.
+        import synfire.layers.ff_layer as ff_mod
+        original = ff_mod._HARD_NEG_ELEMENT_LIMIT
+        try:
+            ff_mod._HARD_NEG_ELEMENT_LIMIT = 1  # force chunked for any input
+            got = _pairwise_sq_distances(a, b, chunk_size=8)
+        finally:
+            ff_mod._HARD_NEG_ELEMENT_LIMIT = original
+        np.testing.assert_allclose(got, expected, atol=1e-10)
+
+    def test_output_non_negative(self):
+        """Squared distances are always non-negative (clamp guards numerical noise)."""
+        rng = np.random.default_rng(2)
+        a = rng.standard_normal((10, 4))
+        b = a + rng.standard_normal((10, 4)) * 1e-8  # near-identical rows
+        dists = _pairwise_sq_distances(a, b)
+        assert np.all(dists >= 0.0)
+
+    def test_hard_strategy_uses_distances(self):
+        """With negative_strategy='hard', the returned negatives are the closest ones."""
+        rng = np.random.default_rng(3)
+        D = 4
+        x_pos = rng.standard_normal((5, D))
+        x_neg = rng.standard_normal((10, D))
+        cfg = FFLayerConfig(input_dim=D, hidden_dim=8, negative_strategy="hard")
+        state = init_layer(cfg)
+
+        selected = pytest.importorskip("synfire.layers.ff_layer")
+        from synfire.layers.ff_layer import _mine_hard_negatives
+        result = _mine_hard_negatives(x_pos, x_neg, state, epoch=0, total_epochs=1)
+
+        # Verify each selected negative is the closest one in x_neg.
+        dists = _pairwise_sq_distances(x_pos, x_neg)
+        expected_indices = np.argmin(dists, axis=1)
+        np.testing.assert_array_equal(result, x_neg[expected_indices])
