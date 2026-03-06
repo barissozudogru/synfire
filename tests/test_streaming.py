@@ -180,3 +180,52 @@ class TestFromPipelineClassMethod:
         scorer1 = StreamingScorer(fitted_pipeline)
         scorer2 = StreamingScorer.from_pipeline(fitted_pipeline)
         assert scorer1._window_size == scorer2._window_size
+
+
+class TestScorePointShapeValidation:
+    """Tests for H-3 fix: shape validation in score_point."""
+
+    def test_scalar_input_accepted(self, fitted_pipeline):
+        """Plain Python floats must be accepted without error."""
+        scorer = StreamingScorer(fitted_pipeline)
+        # Should not raise.
+        result = scorer.score_point(0.5)
+        assert result is None  # buffer not full yet on first call
+
+    def test_zero_d_numpy_array_accepted(self, fitted_pipeline):
+        """0-d numpy arrays are equivalent to scalars and must be accepted."""
+        scorer = StreamingScorer(fitted_pipeline)
+        result = scorer.score_point(np.float64(1.23))
+        assert result is None
+
+    def test_channel_mismatch_raises(self, fitted_pipeline):
+        """Feeding a 2-channel value after a scalar must raise ValueError."""
+        scorer = StreamingScorer(fitted_pipeline)
+        scorer.score_point(0.1)  # establishes channel count = 1
+        with pytest.raises(ValueError, match="Channel count mismatch"):
+            scorer.score_point(np.array([0.1, 0.2]))  # 2 channels != 1
+
+    def test_channel_mismatch_reversed_raises(self, fitted_pipeline):
+        """Feeding a scalar after a 2-channel value must raise ValueError."""
+        scorer = StreamingScorer(fitted_pipeline)
+        scorer.score_point(np.array([0.1, 0.2]))  # establishes channel count = 2
+        with pytest.raises(ValueError, match="Channel count mismatch"):
+            scorer.score_point(0.3)  # 1 channel != 2
+
+    def test_consistent_channels_do_not_raise(self, fitted_pipeline):
+        """Consistent scalar inputs throughout must never raise."""
+        scorer = StreamingScorer(fitted_pipeline)
+        window_size = fitted_pipeline.config.window.window_size
+        # Feed window_size + 1 consistent scalar values.
+        result = None
+        for i in range(window_size + 1):
+            result = scorer.score_point(float(i) * 0.01)
+        assert result is not None
+        assert isinstance(result, float)
+
+    def test_shape_error_message_contains_counts(self, fitted_pipeline):
+        """Error message must report both expected and got channel counts."""
+        scorer = StreamingScorer(fitted_pipeline)
+        scorer.score_point(0.5)  # 1 channel
+        with pytest.raises(ValueError, match=r"expected 1 channel"):
+            scorer.score_point(np.array([0.1, 0.2, 0.3]))
