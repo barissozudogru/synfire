@@ -40,9 +40,10 @@ class TestSlidingWindows:
             sliding_windows(series, cfg)
 
     def test_default_config(self, sine_series):
+        default_ws = WindowConfig().window_size
         windows = sliding_windows(sine_series)
-        expected_n = (len(sine_series) - 20) // 1 + 1
-        assert windows.shape == (expected_n, 20)
+        expected_n = (len(sine_series) - default_ws) // 1 + 1
+        assert windows.shape == (expected_n, default_ws)
 
     def test_window_content_correct(self):
         series = np.arange(50, dtype=np.float64)
@@ -76,12 +77,34 @@ class TestRandomPairs:
     def test_min_gap_respected(self, rng):
         series = np.arange(100, dtype=np.float64)
         windows = sliding_windows(series, WindowConfig(window_size=5, stride=1))
-        _, right = make_random_pairs(windows, rng, min_gap=5)
-        for i in range(len(windows)):
-            for j in range(len(windows)):
+        left, right = make_random_pairs(windows, rng, min_gap=5)
+        n = len(windows)
+        for i in range(n):
+            # Find which index the right window corresponds to
+            for j in range(n):
                 if np.array_equal(right[i], windows[j]):
-                    assert abs(i - j) >= 5 or abs(i - j) == 0
+                    # With circular offset, gap is min of forward and backward distance
+                    gap = min(abs(i - j), n - abs(i - j))
+                    assert gap >= 5, f"Gap {gap} < 5 for pair ({i}, {j})"
                     break
+
+
+class TestRandomPairsEdgeCases:
+    def test_n_equals_1_returns_copy(self, rng):
+        windows = np.array([[1.0, 2.0, 3.0]])
+        left, right = make_random_pairs(windows, rng, min_gap=5)
+        np.testing.assert_array_equal(left, windows)
+        np.testing.assert_array_equal(right, windows)
+        # Verify it's a copy, not the same object
+        assert right is not left
+
+    def test_n_less_than_2_min_gap_relaxes_constraint(self, rng):
+        series = np.arange(40, dtype=np.float64)
+        windows = sliding_windows(series, WindowConfig(window_size=5, stride=5))
+        # 8 windows with min_gap=5 means n < 2*min_gap, gap is relaxed
+        left, right = make_random_pairs(windows, rng, min_gap=5)
+        assert left.shape == right.shape == windows.shape
+        # Should not crash and should return valid pairs
 
 
 class TestShuffledPairs:
@@ -117,6 +140,5 @@ class TestNormalization:
         assert np.all(normed <= 1.0 + 1e-10)
 
     def test_unknown_method_raises(self, sine_series):
-        windows = sliding_windows(sine_series, WindowConfig(window_size=20))
-        with pytest.raises(ValueError, match="Unknown"):
-            normalize_windows(windows, NormConfig(method="invalid"))
+        with pytest.raises(ValueError, match="method must be"):
+            NormConfig(method="invalid")
