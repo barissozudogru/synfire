@@ -136,6 +136,11 @@ def save_pipeline(pipeline: SynfirePipeline, path: str | Path) -> None:
     for i, layer in enumerate(stack.layers):
         arrays[f"W_{i}"] = layer.W
         arrays[f"b_{i}"] = layer.b
+        # Layer norm parameters (only present when layer_norm=True)
+        if layer.ln_gain is not None:
+            arrays[f"ln_gain_{i}"] = layer.ln_gain
+        if layer.ln_bias is not None:
+            arrays[f"ln_bias_{i}"] = layer.ln_bias
         layer_configs.append({
             "input_dim": layer.config.input_dim,
             "hidden_dim": layer.config.hidden_dim,
@@ -149,6 +154,10 @@ def save_pipeline(pipeline: SynfirePipeline, path: str | Path) -> None:
             "lr_schedule": layer.config.lr_schedule,
             "lr_warmup_fraction": layer.config.lr_warmup_fraction,
             "grad_clip_norm": layer.config.grad_clip_norm,
+            "optimizer": layer.config.optimizer,
+            "weight_decay": layer.config.weight_decay,
+            "layer_norm": layer.config.layer_norm,
+            "negative_strategy": layer.config.negative_strategy,
         })
     lc_json = json.dumps(layer_configs)
     arrays["layer_configs_json"] = np.frombuffer(lc_json.encode("utf-8"), dtype=np.uint8)
@@ -212,11 +221,19 @@ def load_pipeline(path: str | Path) -> SynfirePipeline:
             lr_schedule=lc.get("lr_schedule", "none"),
             lr_warmup_fraction=lc.get("lr_warmup_fraction", 0.1),
             grad_clip_norm=lc.get("grad_clip_norm", 0.0),
+            optimizer=lc.get("optimizer", "sgd"),
+            weight_decay=lc.get("weight_decay", 0.0),
+            layer_norm=lc.get("layer_norm", False),
+            negative_strategy=lc.get("negative_strategy", "random"),
         )
+        ln_gain = data[f"ln_gain_{i}"] if f"ln_gain_{i}" in data else None
+        ln_bias = data[f"ln_bias_{i}"] if f"ln_bias_{i}" in data else None
         layers.append(FFLayerState(
             W=data[f"W_{i}"],
             b=data[f"b_{i}"],
             config=layer_cfg,
+            ln_gain=ln_gain,
+            ln_bias=ln_bias,
         ))
 
     stack = FFStackState(layers=layers, config=config.ff_stack)
