@@ -27,15 +27,12 @@ def _kmeans_plus_plus_init(
     idx = rng.integers(0, n)
     prototypes[0] = data[idx]
 
+    min_dists = np.full(n, np.inf)
     for i in range(1, k):
-        # Compute distances to nearest existing prototype
-        dists = np.min(
-            np.sum((data[:, np.newaxis, :] - prototypes[np.newaxis, :i, :]) ** 2, axis=2),
-            axis=1,
-        )
-        # Sample proportional to distance squared
-        total = dists.sum()
-        probs = np.ones(n) / n if total < 1e-12 else dists / total
+        new_dists = np.sum((data - prototypes[i - 1]) ** 2, axis=1)
+        min_dists = np.minimum(min_dists, new_dists)
+        total = min_dists.sum()
+        probs = np.ones(n) / n if total < 1e-12 else min_dists / total
         idx = rng.choice(n, p=probs)
         prototypes[i] = data[idx]
 
