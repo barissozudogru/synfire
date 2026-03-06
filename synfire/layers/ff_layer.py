@@ -157,6 +157,50 @@ def _backward_layer_norm(
     return d_pre
 
 
+def _pairwise_sq_distances(a: NDArray, b: NDArray, chunk_size: int = 512) -> NDArray:
+    """Compute pairwise squared L2 distances between rows of *a* and *b*.
+
+    Uses the identity ||a-b||^2 = ||a||^2 + ||b||^2 - 2*a@b^T to avoid
+    materialising the full (Bp, Bn, D) tensor.  When the naive allocation
+    would exceed ``_HARD_NEG_ELEMENT_LIMIT`` elements the computation is
+    split into row-chunks of at most ``chunk_size`` rows of *a*, keeping
+    peak memory proportional to ``chunk_size * Bn`` rather than ``Bp * Bn``.
+
+    Args:
+        a: Array of shape (Bp, D).
+        b: Array of shape (Bn, D).
+        chunk_size: Maximum number of rows of *a* processed at once.
+
+    Returns:
+        Distance matrix of shape (Bp, Bn).
+    """
+    Bp, D = a.shape
+    Bn = b.shape[0]
+
+    # If the naive tensor fits comfortably, use the fast matrix path.
+    if Bp * Bn * D <= _HARD_NEG_ELEMENT_LIMIT:
+        diff = a[:, np.newaxis, :] - b[np.newaxis, :, :]  # (Bp, Bn, D)
+        return np.sum(diff ** 2, axis=2)
+
+    # Chunked computation: ||a-b||^2 = ||a||^2 + ||b||^2 - 2*(a @ b^T)
+    a_sq = np.sum(a ** 2, axis=1)   # (Bp,)
+    b_sq = np.sum(b ** 2, axis=1)   # (Bn,)
+    dists = np.empty((Bp, Bn), dtype=a.dtype)
+    for start in range(0, Bp, chunk_size):
+        end = min(start + chunk_size, Bp)
+        # (chunk, Bn)
+        cross = a[start:end] @ b.T
+        dists[start:end] = a_sq[start:end, np.newaxis] + b_sq[np.newaxis, :] - 2.0 * cross
+    # Numerical noise can produce tiny negatives; clamp to zero.
+    np.maximum(dists, 0.0, out=dists)
+    return dists
+
+
+# Threshold in total elements (Bp * Bn * D) above which chunked distance
+# computation is used to avoid O(N^2 * D) peak memory.
+_HARD_NEG_ELEMENT_LIMIT: int = 1 << 27  # 128 M elements ~ 1 GB at float64
+
+
 def _mine_hard_negatives(
     x_pos: NDArray, x_neg: NDArray, state: FFLayerState, epoch: int, total_epochs: int
 ) -> NDArray:
@@ -179,11 +223,9 @@ def _mine_hard_negatives(
     if strategy == "random":
         return x_neg
 
-    # Compute L2 distances in input space (cheap proxy for feature-space hardness)
-    # dists[i, j] = ||x_pos[i] - x_neg[j]||^2
-    # Using broadcasting: (batch_pos, 1, D) - (1, batch_neg, D)
-    diff = x_pos[:, np.newaxis, :] - x_neg[np.newaxis, :, :]  # (Bp, Bn, D)
-    dists = np.sum(diff ** 2, axis=2)  # (Bp, Bn)
+    # Compute L2 distances in input space (cheap proxy for feature-space hardness).
+    # Uses chunked computation when Bp * Bn * D would exceed _HARD_NEG_ELEMENT_LIMIT.
+    dists = _pairwise_sq_distances(x_pos, x_neg)  # (Bp, Bn)
 
     # For curriculum: probability of choosing hard negatives increases with epoch
     if strategy == "curriculum":
