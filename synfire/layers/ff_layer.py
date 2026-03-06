@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -24,6 +24,15 @@ class FFLayerState:
     W: NDArray  # (hidden_dim, input_dim)
     b: NDArray  # (hidden_dim,)
     config: FFLayerConfig
+    # Layer normalization parameters (only used when config.layer_norm=True)
+    ln_gain: NDArray | None = None  # (hidden_dim,)
+    ln_bias: NDArray | None = None  # (hidden_dim,)
+    # Adam optimizer first/second moment estimates (only used when config.optimizer="adam")
+    m_W: NDArray | None = None   # first moment for W
+    v_W: NDArray | None = None   # second moment for W
+    m_b: NDArray | None = None   # first moment for b
+    v_b: NDArray | None = None   # second moment for b
+    adam_t: int = 0              # Adam step counter
 
 
 def init_layer(config: FFLayerConfig) -> FFLayerState:
@@ -32,11 +41,40 @@ def init_layer(config: FFLayerConfig) -> FFLayerState:
     scale = np.sqrt(2.0 / (config.input_dim + config.hidden_dim))
     W = rng.standard_normal((config.hidden_dim, config.input_dim)) * scale
     b = np.zeros(config.hidden_dim)
-    return FFLayerState(W=W, b=b, config=config)
+
+    ln_gain = np.ones(config.hidden_dim) if config.layer_norm else None
+    ln_bias = np.zeros(config.hidden_dim) if config.layer_norm else None
+
+    m_W = np.zeros_like(W) if config.optimizer == "adam" else None
+    v_W = np.zeros_like(W) if config.optimizer == "adam" else None
+    m_b = np.zeros_like(b) if config.optimizer == "adam" else None
+    v_b = np.zeros_like(b) if config.optimizer == "adam" else None
+
+    return FFLayerState(
+        W=W, b=b, config=config,
+        ln_gain=ln_gain, ln_bias=ln_bias,
+        m_W=m_W, v_W=v_W, m_b=m_b, v_b=v_b,
+        adam_t=0,
+    )
+
+
+def _apply_layer_norm(
+    pre: NDArray, gain: NDArray, bias: NDArray, eps: float = 1e-8
+) -> tuple[NDArray, NDArray, NDArray]:
+    """Apply layer normalization: h_norm = (pre - mean) / sqrt(var + eps) * gain + bias.
+
+    Returns:
+        (normalized, mean, inv_std) for use in backward pass.
+    """
+    mean = pre.mean(axis=1, keepdims=True)
+    var = pre.var(axis=1, keepdims=True)
+    inv_std = 1.0 / np.sqrt(var + eps)
+    h_norm = (pre - mean) * inv_std
+    return h_norm * gain + bias, h_norm, inv_std
 
 
 def forward(state: FFLayerState, x: NDArray) -> NDArray:
-    """Forward pass: h = relu(x @ W^T + b).
+    """Forward pass: h = relu(layernorm(x @ W^T + b)) or relu(x @ W^T + b).
 
     Args:
         state: Layer state with weights and bias.
@@ -46,6 +84,9 @@ def forward(state: FFLayerState, x: NDArray) -> NDArray:
         Activations of shape (batch, hidden_dim).
     """
     pre = backend.matmul(x, state.W.T) + state.b
+    if state.config.layer_norm and state.ln_gain is not None and state.ln_bias is not None:
+        normed, _, _ = _apply_layer_norm(pre, state.ln_gain, state.ln_bias)
+        return backend.relu(normed)
     return backend.relu(pre)
 
 
@@ -97,11 +138,75 @@ def _backward_relu(pre_activation: NDArray, d_h: NDArray) -> NDArray:
     return d_h * (pre_activation > 0).astype(d_h.dtype)
 
 
+def _backward_layer_norm(
+    d_out: NDArray, h_norm: NDArray, inv_std: NDArray, gain: NDArray
+) -> NDArray:
+    """Gradient through layer normalization.
+
+    d_out has shape (batch, D). Returns gradient w.r.t. pre-norm input.
+    """
+    D = d_out.shape[1]
+    # Scaled gradient
+    d_h_norm = d_out * gain  # (batch, D)
+    # Standard LN backward
+    d_pre = (1.0 / D) * inv_std * (
+        D * d_h_norm
+        - d_h_norm.sum(axis=1, keepdims=True)
+        - h_norm * (d_h_norm * h_norm).sum(axis=1, keepdims=True)
+    )
+    return d_pre
+
+
+def _mine_hard_negatives(
+    x_pos: NDArray, x_neg: NDArray, state: FFLayerState, epoch: int, total_epochs: int
+) -> NDArray:
+    """Select hard negatives closest to positive samples in pre-activation space.
+
+    For "curriculum" strategy, interpolates between random and hard based on
+    training progress. For "hard", always returns the closest negatives.
+
+    Args:
+        x_pos: Positive samples, shape (batch, input_dim).
+        x_neg: Negative candidate pool, shape (batch, input_dim).
+        state: Current layer state.
+        epoch: Current epoch index (0-based).
+        total_epochs: Total training epochs.
+
+    Returns:
+        Selected negatives of shape (batch, input_dim).
+    """
+    strategy = state.config.negative_strategy
+    if strategy == "random":
+        return x_neg
+
+    # Compute L2 distances in input space (cheap proxy for feature-space hardness)
+    # dists[i, j] = ||x_pos[i] - x_neg[j]||^2
+    # Using broadcasting: (batch_pos, 1, D) - (1, batch_neg, D)
+    diff = x_pos[:, np.newaxis, :] - x_neg[np.newaxis, :, :]  # (Bp, Bn, D)
+    dists = np.sum(diff ** 2, axis=2)  # (Bp, Bn)
+
+    # For curriculum: probability of choosing hard negatives increases with epoch
+    if strategy == "curriculum":
+        hard_fraction = epoch / max(1, total_epochs - 1)
+        rng = np.random.default_rng(epoch)
+        use_hard = rng.random(len(x_pos)) < hard_fraction
+        hard_indices = np.argmin(dists, axis=1)
+        random_indices = rng.integers(0, len(x_neg), size=len(x_pos))
+        indices = np.where(use_hard, hard_indices, random_indices)
+    else:
+        # "hard": always pick closest negative
+        indices = np.argmin(dists, axis=1)
+
+    return x_neg[indices]
+
+
 def train_step(
     state: FFLayerState,
     x_pos: NDArray,
     x_neg: NDArray,
     lr: float | None = None,
+    epoch: int = 0,
+    total_epochs: int = 1,
 ) -> tuple[FFLayerState, float]:
     """Single training step: forward both, compute loss, update weights.
 
@@ -110,34 +215,78 @@ def train_step(
         x_pos: Positive input pairs, shape (batch, input_dim).
         x_neg: Negative input pairs, shape (batch, input_dim).
         lr: Learning rate override. Uses state.config.lr when None.
+        epoch: Current epoch (for curriculum negative mining).
+        total_epochs: Total epochs (for curriculum negative mining).
 
     Returns:
         (updated_state, loss_value).
     """
     effective_lr = lr if lr is not None else state.config.lr
 
-    # Forward
+    # Apply hard negative mining if configured
+    if state.config.negative_strategy != "random":
+        x_neg = _mine_hard_negatives(x_pos, x_neg, state, epoch, total_epochs)
+
+    use_ln = state.config.layer_norm and state.ln_gain is not None and state.ln_bias is not None
+
+    # Forward positive
     pre_pos = backend.matmul(x_pos, state.W.T) + state.b
-    h_pos = backend.relu(pre_pos)
+    if use_ln:
+        pre_pos_normed, h_norm_pos, inv_std_pos = _apply_layer_norm(
+            pre_pos, state.ln_gain, state.ln_bias  # type: ignore[arg-type]
+        )
+        h_pos = backend.relu(pre_pos_normed)
+    else:
+        h_pos = backend.relu(pre_pos)
+
     g_pos = goodness(h_pos)
 
+    # Forward negative
     pre_neg = backend.matmul(x_neg, state.W.T) + state.b
-    h_neg = backend.relu(pre_neg)
+    if use_ln:
+        pre_neg_normed, h_norm_neg, inv_std_neg = _apply_layer_norm(
+            pre_neg, state.ln_gain, state.ln_bias  # type: ignore[arg-type]
+        )
+        h_neg = backend.relu(pre_neg_normed)
+    else:
+        h_neg = backend.relu(pre_neg)
+
     g_neg = goodness(h_neg)
 
     # Loss
     loss_val, d_g_pos, d_g_neg = compute_loss(g_pos, g_neg, state.config.threshold)
 
-    # Backward through goodness -> relu -> linear
+    # Backward through goodness -> relu -> [layernorm] -> linear
     d_h_pos = _backward_goodness(h_pos, d_g_pos)
-    d_pre_pos = _backward_relu(pre_pos, d_h_pos)
+    if use_ln:
+        d_pre_pos_normed = _backward_relu(pre_pos_normed, d_h_pos)  # type: ignore[possibly-undefined]
+        d_ln_gain_pos = (d_pre_pos_normed * h_norm_pos).sum(axis=0)  # type: ignore[possibly-undefined]
+        d_ln_bias_pos = d_pre_pos_normed.sum(axis=0)
+        d_pre_pos = _backward_layer_norm(d_pre_pos_normed, h_norm_pos, inv_std_pos, state.ln_gain)  # type: ignore[arg-type,possibly-undefined]
+    else:
+        d_pre_pos = _backward_relu(pre_pos, d_h_pos)
+        d_ln_gain_pos = None
+        d_ln_bias_pos = None
 
     d_h_neg = _backward_goodness(h_neg, d_g_neg)
-    d_pre_neg = _backward_relu(pre_neg, d_h_neg)
+    if use_ln:
+        d_pre_neg_normed = _backward_relu(pre_neg_normed, d_h_neg)  # type: ignore[possibly-undefined]
+        d_ln_gain_neg = (d_pre_neg_normed * h_norm_neg).sum(axis=0)  # type: ignore[possibly-undefined]
+        d_ln_bias_neg = d_pre_neg_normed.sum(axis=0)
+        d_pre_neg = _backward_layer_norm(d_pre_neg_normed, h_norm_neg, inv_std_neg, state.ln_gain)  # type: ignore[arg-type,possibly-undefined]
+    else:
+        d_pre_neg = _backward_relu(pre_neg, d_h_neg)
+        d_ln_gain_neg = None
+        d_ln_bias_neg = None
 
     # Gradients for W and b
     dW = backend.matmul(d_pre_pos.T, x_pos) + backend.matmul(d_pre_neg.T, x_neg)
     db = np.sum(d_pre_pos, axis=0) + np.sum(d_pre_neg, axis=0)
+
+    # Weight decay (L2): adds wd * W to gradient (not applied to biases)
+    wd = state.config.weight_decay
+    if wd > 0.0:
+        dW = dW + wd * state.W
 
     # Gradient clipping by global norm
     clip_norm = state.config.grad_clip_norm
@@ -148,9 +297,30 @@ def train_step(
             dW = dW * scale
             db = db * scale
 
-    # Update
-    new_W = state.W - effective_lr * dW
-    new_b = state.b - effective_lr * db
+    # Optimizer step
+    if state.config.optimizer == "adam":
+        beta1, beta2, eps_adam = 0.9, 0.999, 1e-8
+        t = state.adam_t + 1
+        m_W = beta1 * state.m_W + (1.0 - beta1) * dW  # type: ignore[operator]
+        v_W = beta2 * state.v_W + (1.0 - beta2) * (dW ** 2)  # type: ignore[operator]
+        m_b = beta1 * state.m_b + (1.0 - beta1) * db  # type: ignore[operator]
+        v_b = beta2 * state.v_b + (1.0 - beta2) * (db ** 2)  # type: ignore[operator]
+        # Bias-corrected estimates
+        m_W_hat = m_W / (1.0 - beta1 ** t)
+        v_W_hat = v_W / (1.0 - beta2 ** t)
+        m_b_hat = m_b / (1.0 - beta1 ** t)
+        v_b_hat = v_b / (1.0 - beta2 ** t)
+        new_W = state.W - effective_lr * m_W_hat / (np.sqrt(v_W_hat) + eps_adam)
+        new_b = state.b - effective_lr * m_b_hat / (np.sqrt(v_b_hat) + eps_adam)
+    else:
+        # SGD
+        new_W = state.W - effective_lr * dW
+        new_b = state.b - effective_lr * db
+        m_W = state.m_W
+        v_W = state.v_W
+        m_b = state.m_b
+        v_b = state.v_b
+        t = state.adam_t
 
     if not np.all(np.isfinite(new_W)) or not np.all(np.isfinite(new_b)):
         raise RuntimeError(
@@ -158,7 +328,21 @@ def train_step(
             "(NaN or Inf). Try reducing the learning rate or clipping gradients."
         )
 
-    return FFLayerState(W=new_W, b=new_b, config=state.config), loss_val
+    # Update layer norm parameters
+    new_ln_gain = state.ln_gain
+    new_ln_bias = state.ln_bias
+    if use_ln and d_ln_gain_pos is not None:
+        d_ln_gain = d_ln_gain_pos + d_ln_gain_neg  # type: ignore[operator]
+        d_ln_bias = d_ln_bias_pos + d_ln_bias_neg  # type: ignore[operator]
+        new_ln_gain = state.ln_gain - effective_lr * d_ln_gain  # type: ignore[operator]
+        new_ln_bias = state.ln_bias - effective_lr * d_ln_bias  # type: ignore[operator]
+
+    return FFLayerState(
+        W=new_W, b=new_b, config=state.config,
+        ln_gain=new_ln_gain, ln_bias=new_ln_bias,
+        m_W=m_W, v_W=v_W, m_b=m_b, v_b=v_b,
+        adam_t=t,
+    ), loss_val
 
 
 def _scheduled_lr(
@@ -259,7 +443,8 @@ def train_layer(
         for start in range(0, n, effective_batch):
             batch_idx = indices[start : start + effective_batch]
             state, batch_loss = train_step(
-                state, x_pos[batch_idx], x_neg[batch_idx], lr=lr
+                state, x_pos[batch_idx], x_neg[batch_idx], lr=lr,
+                epoch=epoch, total_epochs=config.epochs,
             )
             epoch_losses.append(batch_loss)
 

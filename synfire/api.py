@@ -2,15 +2,23 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import numpy as np
 from numpy.typing import NDArray
 
 from synfire.core.config import SynfireConfig
-from synfire.layers.ff_stack import FFStackState, init_stack, train_stack
+from synfire.layers.ff_layer import goodness
+from synfire.layers.ff_stack import FFStackState, forward_stack, init_stack, train_stack
 from synfire.layers.hebbian import HebbianState, init_hebbian, train_hebbian
-from synfire.pipeline.anomaly import AnomalyScaler, anomaly_scores, fit_anomaly_scaler
+from synfire.pipeline.anomaly import (
+    AnomalyScaler,
+    DecomposedAnomalyScore,
+    anomaly_scores,
+    anomaly_scores_decomposed,
+    fit_anomaly_scaler,
+)
 from synfire.pipeline.cluster import cluster_assign
 from synfire.pipeline.representation import get_representation
 from synfire.preprocessing.normalization import normalize_windows
@@ -19,6 +27,8 @@ from synfire.preprocessing.windows import (
     make_random_pairs,
     sliding_windows,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _validate_series(series: NDArray, window_size: int, method: str) -> None:
@@ -56,6 +66,12 @@ class SynfirePipeline:
         self._hebbian: HebbianState | None = None
         self._anomaly_scaler: AnomalyScaler | None = None
         self._fitted = False
+        # Per-layer loss histories from the most recent fit() call.
+        # Shape: list of lists, one inner list per FF stack layer.
+        self.training_history: list[list[float]] = []
+        # Effective goodness threshold used for scoring (may differ from config
+        # when adaptive_threshold=True).
+        self._effective_threshold: float = self.config.ff_stack.threshold
 
     def _prepare_pairs(
         self, series: NDArray, rng: np.random.Generator
@@ -68,6 +84,13 @@ class SynfirePipeline:
         neg_l, neg_r = make_random_pairs(windows, rng, min_gap=5)
 
         n = len(pos_l)
+        if n < 10:
+            raise ValueError(
+                f"Too few training pairs generated: {n} (minimum 10 required). "
+                "Provide a longer time series or reduce window_size/stride to "
+                "generate more sliding windows."
+            )
+
         x_pos = np.concatenate([pos_l, pos_r], axis=1)
         x_neg = np.concatenate([neg_l[:n], neg_r[:n]], axis=1)
         return x_pos, x_neg
@@ -89,19 +112,46 @@ class SynfirePipeline:
             self, for method chaining.
         """
         _validate_series(series, self.config.window.window_size, "fit")
+        logger.info(
+            "Fitting SynfirePipeline: series shape=%s, window_size=%d, layer_dims=%s",
+            series.shape,
+            self.config.window.window_size,
+            self.config.ff_stack.layer_dims,
+        )
         rng = np.random.default_rng(self.config.ff_stack.seed)
 
         x_pos, x_neg = self._prepare_pairs(series, rng)
         input_dim = x_pos.shape[1]
+        logger.info("Prepared %d positive pairs, input_dim=%d", len(x_pos), input_dim)
 
         # Train FF stack
         stack = init_stack(input_dim, self.config.ff_stack)
-        self._stack, _ = train_stack(stack, x_pos, x_neg)
+        self._stack, all_losses = train_stack(stack, x_pos, x_neg)
+        self.training_history = all_losses
+
+        # Adaptive threshold: recalibrate to mean goodness of positive training data.
+        # This removes the need to hand-tune the threshold for new datasets.
+        if self.config.adaptive_threshold:
+            train_activations = forward_stack(self._stack, x_pos)
+            pos_goodness = goodness(train_activations[-1])
+            self._effective_threshold = float(np.mean(pos_goodness))
+            logger.info(
+                "Adaptive threshold: config=%.3f -> calibrated=%.3f (mean pos goodness)",
+                self.config.ff_stack.threshold,
+                self._effective_threshold,
+            )
+        else:
+            self._effective_threshold = self.config.ff_stack.threshold
 
         # Extract representations for Hebbian training
         representations = get_representation(self._stack, x_pos)
 
         # Train Hebbian layer
+        logger.info(
+            "Training Hebbian layer: n_prototypes=%d, epochs=%d",
+            self.config.hebbian.n_prototypes,
+            self.config.hebbian.epochs,
+        )
         hebbian = init_hebbian(representations, self.config.hebbian)
         self._hebbian = train_hebbian(hebbian, representations)
 
@@ -111,10 +161,11 @@ class SynfirePipeline:
             self._hebbian,
             x_pos,
             self.config.anomaly,
-            self.config.ff_stack.threshold,
+            self._effective_threshold,
         )
 
         self._fitted = True
+        logger.info("Pipeline fit complete")
         return self
 
     def _check_fitted(self) -> None:
@@ -141,7 +192,34 @@ class SynfirePipeline:
             self._hebbian,
             test_pairs,
             self.config.anomaly,
-            self.config.ff_stack.threshold,
+            self._effective_threshold,
+            scaler=self._anomaly_scaler,
+        )
+
+    def score_decomposed(self, series: NDArray) -> DecomposedAnomalyScore:
+        """Compute decomposed anomaly scores with per-component breakdown.
+
+        Returns each scoring component separately (goodness_deficit,
+        prototype_distance, transition_surprise) alongside the combined score.
+        Components disabled in config are returned as None.
+
+        Args:
+            series: 1D or 2D time series array.
+
+        Returns:
+            DecomposedAnomalyScore dataclass with individual and combined scores.
+        """
+        _validate_series(series, self.config.window.window_size, "score_decomposed")
+        self._check_fitted()
+        if self._stack is None or self._hebbian is None:
+            raise RuntimeError("Pipeline state is corrupted: missing stack or hebbian.")
+        test_pairs = self._prepare_test_pairs(series)
+        return anomaly_scores_decomposed(
+            self._stack,
+            self._hebbian,
+            test_pairs,
+            self.config.anomaly,
+            self._effective_threshold,
             scaler=self._anomaly_scaler,
         )
 
