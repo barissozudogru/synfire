@@ -263,6 +263,19 @@ class TestInputValidation:
         with pytest.raises(ValueError, match="shorter than window_size"):
             pipeline.fit(series)
 
+    def test_list_series_supported(self):
+        pipeline = SynfirePipeline()
+        series = [float(x) for x in range(100)]
+        pipeline.fit(series)
+        scores = pipeline.anomaly_scores(series)
+        assert len(scores) > 0
+
+    def test_non_numeric_series_rejected(self):
+        pipeline = SynfirePipeline()
+        series = np.array(["a", "b", "c"] * 50)
+        with pytest.raises(ValueError, match="numeric dtype"):
+            pipeline.fit(series)
+
 
 class TestConfigValidation:
     """Test that invalid config values are rejected at construction time."""

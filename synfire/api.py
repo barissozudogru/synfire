@@ -31,19 +31,27 @@ from synfire.preprocessing.windows import (
 logger = logging.getLogger(__name__)
 
 
-def _validate_series(series: NDArray, window_size: int, method: str) -> None:
+def _validate_series(series: NDArray, window_size: int, method: str) -> NDArray:
     """Validate time series input for pipeline methods."""
-    if series.ndim not in (1, 2):
-        raise ValueError(f"{method}: series must be 1D or 2D, got ndim={series.ndim}")
-    if series.size == 0:
+    try:
+        arr = np.asarray(series)
+    except Exception as e:
+        raise ValueError(f"{method}: input could not be converted to numpy array: {e}") from e
+    if not np.issubdtype(arr.dtype, np.number):
+        raise ValueError(f"{method}: series must have numeric dtype, got dtype={arr.dtype}")
+    if arr.ndim not in (1, 2):
+        raise ValueError(f"{method}: series must be 1D or 2D, got ndim={arr.ndim}")
+    if arr.size == 0:
         raise ValueError(f"{method}: series must be non-empty")
-    length = series.shape[0]
+    length = arr.shape[0]
     if length < window_size:
         raise ValueError(
             f"{method}: series length {length} is shorter than window_size={window_size}"
         )
-    if not np.isfinite(series).all():
+    if not np.isfinite(arr).all():
         raise ValueError(f"{method}: series contains non-finite values (NaN or Inf)")
+    return arr
+
 
 
 class SynfirePipeline:
@@ -111,7 +119,7 @@ class SynfirePipeline:
         Returns:
             self, for method chaining.
         """
-        _validate_series(series, self.config.window.window_size, "fit")
+        series = _validate_series(series, self.config.window.window_size, "fit")
         logger.info(
             "Fitting SynfirePipeline: series shape=%s, window_size=%d, layer_dims=%s",
             series.shape,
@@ -182,7 +190,7 @@ class SynfirePipeline:
             Scores of shape (N-1,) where N is the number of windows.
             Higher values indicate more anomalous regions.
         """
-        _validate_series(series, self.config.window.window_size, "anomaly_scores")
+        series = _validate_series(series, self.config.window.window_size, "anomaly_scores")
         self._check_fitted()
         if self._stack is None or self._hebbian is None:
             raise RuntimeError("Pipeline state is corrupted: missing stack or hebbian.")
@@ -209,7 +217,7 @@ class SynfirePipeline:
         Returns:
             DecomposedAnomalyScore dataclass with individual and combined scores.
         """
-        _validate_series(series, self.config.window.window_size, "score_decomposed")
+        series = _validate_series(series, self.config.window.window_size, "score_decomposed")
         self._check_fitted()
         if self._stack is None or self._hebbian is None:
             raise RuntimeError("Pipeline state is corrupted: missing stack or hebbian.")
@@ -232,7 +240,7 @@ class SynfirePipeline:
         Returns:
             Cluster indices of shape (N-1,).
         """
-        _validate_series(series, self.config.window.window_size, "cluster")
+        series = _validate_series(series, self.config.window.window_size, "cluster")
         self._check_fitted()
         if self._stack is None or self._hebbian is None:
             raise RuntimeError("Pipeline state is corrupted: missing stack or hebbian.")
@@ -249,7 +257,7 @@ class SynfirePipeline:
         Returns:
             Representations of shape (N-1, repr_dim).
         """
-        _validate_series(series, self.config.window.window_size, "transform")
+        series = _validate_series(series, self.config.window.window_size, "transform")
         self._check_fitted()
         if self._stack is None:
             raise RuntimeError("Pipeline state is corrupted: missing stack.")
