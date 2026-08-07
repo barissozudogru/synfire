@@ -49,3 +49,18 @@ class TestPersistence:
         assert loaded.config.ff_stack.layer_dims == small_config.ff_stack.layer_dims
         assert loaded.config.hebbian.n_prototypes == small_config.hebbian.n_prototypes
         assert loaded._fitted is True
+
+    def test_save_invalid_type_raises(self, tmp_path):
+        from synfire.persistence import save_pipeline
+
+        with pytest.raises(TypeError, match="Expected SynfirePipeline"):
+            save_pipeline("not_a_pipeline", tmp_path / "model.npz")
+
+    def test_save_corrupted_state_raises(self, tmp_path):
+        from synfire.persistence import save_pipeline
+
+        pipeline = SynfirePipeline()
+        pipeline._fitted = True
+        with pytest.raises(RuntimeError, match="Pipeline state is corrupted"):
+            save_pipeline(pipeline, tmp_path / "model.npz")
+

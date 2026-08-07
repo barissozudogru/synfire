@@ -201,71 +201,70 @@ def load_pipeline(path: str | Path) -> SynfirePipeline:
     from synfire.api import SynfirePipeline
     from synfire.core.config import FFLayerConfig
 
-    data = np.load(path, allow_pickle=False)
+    with np.load(path, allow_pickle=False) as data:
+        # Config
+        config_json = data["config_json"].tobytes().decode("utf-8")
+        config = _config_from_dict(json.loads(config_json))
 
-    # Config
-    config_json = data["config_json"].tobytes().decode("utf-8")
-    config = _config_from_dict(json.loads(config_json))
+        # FF stack layers
+        n_layers = int(data["n_layers"][0])
+        lc_json = data["layer_configs_json"].tobytes().decode("utf-8")
+        layer_configs = json.loads(lc_json)
 
-    # FF stack layers
-    n_layers = int(data["n_layers"][0])
-    lc_json = data["layer_configs_json"].tobytes().decode("utf-8")
-    layer_configs = json.loads(lc_json)
+        layers = []
+        for i in range(n_layers):
+            lc = layer_configs[i]
+            # Use .get() for fields added after initial release for backward compat
+            layer_cfg = FFLayerConfig(
+                input_dim=lc["input_dim"],
+                hidden_dim=lc["hidden_dim"],
+                lr=lc["lr"],
+                threshold=lc["threshold"],
+                epochs=lc["epochs"],
+                seed=lc["seed"],
+                batch_size=lc.get("batch_size", 256),
+                early_stopping_patience=lc.get("early_stopping_patience", 0),
+                early_stopping_min_delta=lc.get("early_stopping_min_delta", 1e-4),
+                lr_schedule=lc.get("lr_schedule", "none"),
+                lr_warmup_fraction=lc.get("lr_warmup_fraction", 0.1),
+                grad_clip_norm=lc.get("grad_clip_norm", 0.0),
+                optimizer=lc.get("optimizer", "sgd"),
+                weight_decay=lc.get("weight_decay", 0.0),
+                layer_norm=lc.get("layer_norm", False),
+                negative_strategy=lc.get("negative_strategy", "random"),
+            )
+            ln_gain = data.get(f"ln_gain_{i}", None)
+            ln_bias = data.get(f"ln_bias_{i}", None)
+            layers.append(FFLayerState(
+                W=data[f"W_{i}"],
+                b=data[f"b_{i}"],
+                config=layer_cfg,
+                ln_gain=ln_gain,
+                ln_bias=ln_bias,
+            ))
 
-    layers = []
-    for i in range(n_layers):
-        lc = layer_configs[i]
-        # Use .get() for fields added after initial release for backward compat
-        layer_cfg = FFLayerConfig(
-            input_dim=lc["input_dim"],
-            hidden_dim=lc["hidden_dim"],
-            lr=lc["lr"],
-            threshold=lc["threshold"],
-            epochs=lc["epochs"],
-            seed=lc["seed"],
-            batch_size=lc.get("batch_size", 256),
-            early_stopping_patience=lc.get("early_stopping_patience", 0),
-            early_stopping_min_delta=lc.get("early_stopping_min_delta", 1e-4),
-            lr_schedule=lc.get("lr_schedule", "none"),
-            lr_warmup_fraction=lc.get("lr_warmup_fraction", 0.1),
-            grad_clip_norm=lc.get("grad_clip_norm", 0.0),
-            optimizer=lc.get("optimizer", "sgd"),
-            weight_decay=lc.get("weight_decay", 0.0),
-            layer_norm=lc.get("layer_norm", False),
-            negative_strategy=lc.get("negative_strategy", "random"),
+        stack = FFStackState(layers=layers, config=config.ff_stack)
+
+        # Hebbian state
+        hebbian = HebbianState(prototypes=data["prototypes"], config=config.hebbian)
+
+        # Anomaly scaler
+        s = data["scaler_scalars"]
+        scaler = AnomalyScaler(
+            goodness_min=float(s[0]),
+            goodness_range=float(s[1]),
+            distance_min=float(s[2]),
+            distance_range=float(s[3]),
+            surprise_min=float(s[4]),
+            surprise_range=float(s[5]),
+            trans_prob=data["scaler_trans_prob"],
         )
-        ln_gain = data[f"ln_gain_{i}"] if f"ln_gain_{i}" in data else None
-        ln_bias = data[f"ln_bias_{i}"] if f"ln_bias_{i}" in data else None
-        layers.append(FFLayerState(
-            W=data[f"W_{i}"],
-            b=data[f"b_{i}"],
-            config=layer_cfg,
-            ln_gain=ln_gain,
-            ln_bias=ln_bias,
-        ))
 
-    stack = FFStackState(layers=layers, config=config.ff_stack)
-
-    # Hebbian state
-    hebbian = HebbianState(prototypes=data["prototypes"], config=config.hebbian)
-
-    # Anomaly scaler
-    s = data["scaler_scalars"]
-    scaler = AnomalyScaler(
-        goodness_min=float(s[0]),
-        goodness_range=float(s[1]),
-        distance_min=float(s[2]),
-        distance_range=float(s[3]),
-        surprise_min=float(s[4]),
-        surprise_range=float(s[5]),
-        trans_prob=data["scaler_trans_prob"],
-    )
-
-    # Effective threshold (fall back to config threshold for files saved before this field)
-    if "effective_threshold" in data:
-        effective_threshold = float(data["effective_threshold"][0])
-    else:
-        effective_threshold = config.ff_stack.threshold
+        # Effective threshold (fall back to config threshold for files saved before this field)
+        if "effective_threshold" in data:
+            effective_threshold = float(data["effective_threshold"][0])
+        else:
+            effective_threshold = config.ff_stack.threshold
 
     # Reconstruct pipeline
     pipeline = SynfirePipeline(config)
