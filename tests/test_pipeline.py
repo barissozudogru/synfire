@@ -276,6 +276,14 @@ class TestInputValidation:
         with pytest.raises(ValueError, match="numeric dtype"):
             pipeline.fit(series)
 
+    def test_too_few_pairs_rejected(self):
+        # Length 29 with window=20, stride=1 yields 10 windows and 9 pairs, which is < 10.
+        pipeline = SynfirePipeline(SynfireConfig(window=WindowConfig(window_size=20, stride=1)))
+        series = np.arange(29, dtype=np.float64)
+        with pytest.raises(ValueError, match="Too few training pairs generated"):
+            pipeline.fit(series)
+
+
 
 class TestConfigValidation:
     """Test that invalid config values are rejected at construction time."""
