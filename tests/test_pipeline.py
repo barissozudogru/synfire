@@ -136,6 +136,12 @@ class TestSynfirePipeline:
         expected_n = (len(sine_series) - 20) // 1 + 1 - 1
         assert reps.shape == (expected_n, 16)  # last layer dim
 
+    def test_fit_transform(self, sine_series, small_config):
+        pipeline = SynfirePipeline(small_config)
+        reps = pipeline.fit_transform(sine_series)
+        expected_n = (len(sine_series) - 20) // 1 + 1 - 1
+        assert reps.shape == (expected_n, 16)  # last layer dim
+
     def test_default_config_works(self, sine_series):
         pipeline = SynfirePipeline()
         pipeline.fit(sine_series)
