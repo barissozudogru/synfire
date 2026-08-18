@@ -229,3 +229,9 @@ class TestScorePointShapeValidation:
         scorer.score_point(0.5)  # 1 channel
         with pytest.raises(ValueError, match=r"expected 1 channel"):
             scorer.score_point(np.array([0.1, 0.2, 0.3]))
+
+    def test_multi_dimensional_input_rejected(self, fitted_pipeline):
+        """Feeding a 2D array must raise ValueError."""
+        scorer = StreamingScorer(fitted_pipeline)
+        with pytest.raises(ValueError, match="expects a scalar or 1-D array"):
+            scorer.score_point(np.array([[1.0, 2.0], [3.0, 4.0]]))
