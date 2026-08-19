@@ -146,7 +146,7 @@ class TestMergeGap:
         assert len(segments) == 2
 
     def test_merge_gap_does_not_exceed_threshold(self):
-        # Gap of 3, merge_gap=2 — should NOT merge
+        # Gap of 3, merge_gap=2, should NOT merge
         scores = np.array([0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0], dtype=np.float64)
         segments = localize_anomalies(scores, threshold=0.5, merge_gap=2)
         assert len(segments) == 2
