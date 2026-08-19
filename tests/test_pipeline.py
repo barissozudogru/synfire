@@ -173,7 +173,7 @@ class TestAnomalyScoreDeterminism:
         """Same input scored in different batch contexts must produce identical scores."""
         full_scores = fitted_pipeline.anomaly_scores(sine_series)
 
-        # Score a subset -- same data, different batch context
+        # Score a subset: same data, different batch context
         half = len(sine_series) // 2 + 20  # enough for at least some windows
         subset_scores = fitted_pipeline.anomaly_scores(sine_series[:half])
 
@@ -181,7 +181,7 @@ class TestAnomalyScoreDeterminism:
         overlap = min(len(full_scores), len(subset_scores))
         np.testing.assert_allclose(
             full_scores[:overlap], subset_scores[:overlap], atol=1e-10,
-            err_msg="Scores differ between batch contexts -- normalization is batch-dependent"
+            err_msg="Scores differ between batch contexts: normalization is batch-dependent"
         )
 
     def test_anomaly_scaler_stored_after_fit(self, fitted_pipeline):

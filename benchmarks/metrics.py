@@ -1,4 +1,4 @@
-"""Benchmark metrics: AUC-ROC, precision@k, best F1 -- all pure NumPy."""
+"""Benchmark metrics: AUC-ROC, precision@k, best F1. All pure NumPy."""
 
 from __future__ import annotations
 
