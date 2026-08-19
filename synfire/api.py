@@ -180,15 +180,60 @@ class SynfirePipeline:
         if not self._fitted:
             raise RuntimeError("Pipeline not fitted. Call fit() first.")
 
+    def score_index_to_sample(self, score_index: int) -> int:
+        """Map an index in :meth:`anomaly_scores` back to a sample index.
+
+        Scores are offset from the input by the window geometry, so an anomaly
+        cannot be located in time without this mapping.
+
+        Args:
+            score_index: Position within the array returned by
+                :meth:`anomaly_scores`.
+
+        Returns:
+            Index into the original series of the first sample of the window
+            the score describes.
+        """
+        w = self.config.window
+        return int(score_index) * w.stride + w.stride
+
+    def score_window_bounds(self, score_index: int) -> tuple[int, int]:
+        """Half-open sample range ``[start, end)`` covered by a score.
+
+        Args:
+            score_index: Position within the array returned by
+                :meth:`anomaly_scores`.
+
+        Returns:
+            Start and end sample indices of the window the score describes.
+        """
+        start = self.score_index_to_sample(score_index)
+        return start, start + self.config.window.window_size
+
     def anomaly_scores(self, series: NDArray) -> NDArray:
         """Compute anomaly scores for a test time series.
+
+        Scores are computed over sliding windows, so the output is shorter than
+        the input and offset from it. For ``window_size=w`` and ``stride=s``
+        there are ``N = (len(series) - w) // s + 1`` windows and ``N - 1``
+        scores, because each score compares consecutive windows.
+
+        ``scores[i]`` describes the transition into the window starting at
+        ``i * s + s``, so the sample it points at is
+        ``score_index_to_sample(i)``. Use that rather than indexing the input
+        with a score index directly, which is off by the window offset.
 
         Args:
             series: 1D or 2D time series array.
 
         Returns:
-            Scores of shape (N-1,) where N is the number of windows.
-            Higher values indicate more anomalous regions.
+            Scores of shape (N-1,). Higher values indicate more anomalous
+            regions.
+
+        Example:
+            >>> scores = pipeline.anomaly_scores(series)   # len 275 for 300 in
+            >>> worst = int(scores.argmax())
+            >>> sample = pipeline.score_index_to_sample(worst)
         """
         series = _validate_series(series, self.config.window.window_size, "anomaly_scores")
         self._check_fitted()

@@ -3,7 +3,6 @@ import pytest
 
 from synfire.core.config import FFLayerConfig, WindowConfig
 from synfire.layers.ff_layer import (
-    _HARD_NEG_ELEMENT_LIMIT,
     _pairwise_sq_distances,
     compute_loss,
     forward,
@@ -261,7 +260,7 @@ class TestPairwiseSqDistances:
         cfg = FFLayerConfig(input_dim=D, hidden_dim=8, negative_strategy="hard")
         state = init_layer(cfg)
 
-        selected = pytest.importorskip("synfire.layers.ff_layer")
+        pytest.importorskip("synfire.layers.ff_layer")
         from synfire.layers.ff_layer import _mine_hard_negatives
         result = _mine_hard_negatives(x_pos, x_neg, state, epoch=0, total_epochs=1)
 

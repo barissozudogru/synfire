@@ -125,7 +125,9 @@ def _ensemble_goodness_deficit(
     weights = weights / weights.sum()
 
     deficit = np.zeros(activations[0].shape[0])
-    for w, acts in zip(weights, activations):
+    # weights is built from len(activations), so the lengths always match;
+    # strict=True makes that invariant explicit rather than silently truncating.
+    for w, acts in zip(weights, activations, strict=True):
         deficit += w * (threshold - goodness(acts))
     return deficit
 

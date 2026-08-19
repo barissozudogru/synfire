@@ -13,7 +13,6 @@ from synfire.streaming import StreamingScorer
 @pytest.fixture(scope="module")
 def fitted_pipeline():
     """Small fitted pipeline used across streaming tests."""
-    rng = np.random.default_rng(42)
     t = np.arange(500, dtype=np.float64)
     series = np.sin(2 * np.pi * t / 50)
 
