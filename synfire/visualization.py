@@ -18,6 +18,7 @@ import numpy as np
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
+
     from synfire.pipeline.anomaly import DecomposedAnomalyScore
 
 
@@ -108,7 +109,13 @@ def plot_goodness_distribution(
     ax.hist(neg_goodness, label="Negative", color="salmon", **common_kwargs)
 
     if threshold is not None:
-        ax.axvline(threshold, color="black", linestyle="--", linewidth=1.5, label=f"Threshold={threshold}")
+        ax.axvline(
+            threshold,
+            color="black",
+            linestyle="--",
+            linewidth=1.5,
+            label=f"Threshold={threshold}",
+        )
 
     ax.set_title(title)
     ax.set_xlabel(xlabel)
@@ -152,7 +159,13 @@ def plot_anomaly_scores(
     ax.plot(t, scores, color="steelblue", linewidth=0.8, label="Score")
 
     if threshold is not None:
-        ax.axhline(threshold, color="red", linestyle="--", linewidth=1.2, label=f"Threshold={threshold:.3f}")
+        ax.axhline(
+            threshold,
+            color="red",
+            linestyle="--",
+            linewidth=1.2,
+            label=f"Threshold={threshold:.3f}",
+        )
 
     if labels is not None:
         labels = np.asarray(labels, dtype=bool)

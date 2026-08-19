@@ -3,8 +3,6 @@ score decomposition, visualization, hard negative mining, and multi-resolution."
 
 from __future__ import annotations
 
-import importlib
-import math
 import sys
 
 import numpy as np
@@ -20,23 +18,19 @@ from synfire.core.config import (
     WindowConfig,
 )
 from synfire.layers.ff_layer import (
-    FFLayerState,
     _mine_hard_negatives,
     forward,
-    goodness,
     init_layer,
     train_layer,
     train_step,
 )
-from synfire.layers.ff_stack import init_stack, train_stack, forward_stack
+from synfire.layers.ff_stack import init_stack
 from synfire.layers.hebbian import HebbianState, init_hebbian, train_hebbian, update_step
+from synfire.multi_resolution import MultiResolutionPipeline
 from synfire.pipeline.anomaly import (
     DecomposedAnomalyScore,
     anomaly_scores_decomposed,
-    fit_anomaly_scaler,
 )
-from synfire.multi_resolution import MultiResolutionPipeline
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -198,7 +192,7 @@ class TestAdamOptimizer:
         state = init_layer(cfg)
         trained, losses = train_layer(state, x_pos, x_neg)
         assert np.all(np.isfinite(trained.W))
-        assert all(np.isfinite(l) for l in losses)
+        assert all(np.isfinite(layer) for layer in losses)
 
 
 # ===========================================================================
@@ -422,7 +416,7 @@ class TestScoreDecomposition:
         for arr in (result.goodness_deficit, result.prototype_distance,
                     result.transition_surprise, result.combined):
             if arr is not None:
-                assert np.all(np.isfinite(arr)), f"Component has non-finite values"
+                assert np.all(np.isfinite(arr)), "Component has non-finite values"
 
     def test_goodness_only_config(self, sine_series):
         config = SynfireConfig(
@@ -458,7 +452,8 @@ class TestScoreDecomposition:
         """Call anomaly_scores_decomposed directly without pipeline."""
         from synfire.preprocessing.normalization import normalize_windows
         from synfire.preprocessing.windows import (
-            make_consecutive_pairs, sliding_windows,
+            make_consecutive_pairs,
+            sliding_windows,
         )
         config = minimal_pipeline.config
         windows = sliding_windows(sine_series, config.window)
@@ -486,7 +481,6 @@ class _FakeAxes:
     """Minimal matplotlib Axes stand-in for visualization tests."""
 
     def __init__(self):
-        import types
         self._lines: list = []
         self._patches: list = []
 
@@ -553,8 +547,9 @@ class TestVisualization:
             viz._require_matplotlib = orig
 
     def test_plot_goodness_distribution_with_mocked_mpl(self, rng):
-        import synfire.visualization as viz
         import types
+
+        import synfire.visualization as viz
 
         class FakePlt:
             @staticmethod
@@ -571,8 +566,9 @@ class TestVisualization:
             viz._require_matplotlib = orig
 
     def test_plot_anomaly_scores_with_mocked_mpl(self, rng):
-        import synfire.visualization as viz
         import types
+
+        import synfire.visualization as viz
 
         class FakePlt:
             @staticmethod
@@ -589,8 +585,9 @@ class TestVisualization:
             viz._require_matplotlib = orig
 
     def test_plot_anomaly_scores_with_labels_and_threshold(self, rng):
-        import synfire.visualization as viz
         import types
+
+        import synfire.visualization as viz
 
         class FakePlt:
             @staticmethod
@@ -600,7 +597,6 @@ class TestVisualization:
         orig = viz._require_matplotlib
 
         # Need matplotlib.patches.Patch to exist; patch it
-        import unittest.mock as mock
         fake_patch_mod = types.ModuleType("matplotlib.patches")
         fake_patch_mod.Patch = lambda **kw: None
         orig_patches = sys.modules.get("matplotlib.patches")
@@ -620,8 +616,9 @@ class TestVisualization:
                 del sys.modules["matplotlib.patches"]
 
     def test_plot_score_decomposition_with_mocked_mpl(self, rng):
-        import synfire.visualization as viz
         import types
+
+        import synfire.visualization as viz
 
         class FakePlt:
             @staticmethod
@@ -729,7 +726,7 @@ class TestHardNegativeMining:
         )
         state = init_layer(cfg)
         trained, losses = train_layer(state, x_pos, x_neg)
-        assert all(np.isfinite(l) for l in losses)
+        assert all(np.isfinite(layer) for layer in losses)
         assert np.all(np.isfinite(trained.W))
 
     def test_curriculum_strategy_training_runs(self, small_pos_neg):
@@ -739,7 +736,7 @@ class TestHardNegativeMining:
         )
         state = init_layer(cfg)
         trained, losses = train_layer(state, x_pos, x_neg)
-        assert all(np.isfinite(l) for l in losses)
+        assert all(np.isfinite(layer) for layer in losses)
 
     def test_stack_negative_strategy_propagation(self):
         cfg = FFStackConfig(
@@ -873,7 +870,7 @@ class TestMultiResolutionPipeline:
         scores_weighted = mr.anomaly_scores(sine_series)
 
         # Single-resolution pipeline at ws=8
-        single = SynfirePipeline(mr._config_for_window(8))
+        SynfirePipeline(mr._config_for_window(8))
         # Note: pipelines already fitted; compare output lengths
         assert len(scores_weighted) > 0
         assert np.all(np.isfinite(scores_weighted))
@@ -927,7 +924,7 @@ class TestCombinedFeatures:
         )
         state = init_layer(cfg)
         _, losses = train_layer(state, x_pos, x_neg)
-        assert all(np.isfinite(l) for l in losses)
+        assert all(np.isfinite(layer) for layer in losses)
 
     def test_multiresolution_with_custom_config(self, sine_series):
         base = SynfireConfig(
