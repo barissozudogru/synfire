@@ -90,7 +90,7 @@ class StreamingScorer:
             raise ValueError(
                 f"score_point expects a scalar or 1-D array, got shape {orig_arr.shape}"
             )
-            
+
         arr = orig_arr.ravel()
 
         # Validate channel count consistency once the buffer has at least one entry.

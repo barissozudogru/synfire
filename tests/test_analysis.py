@@ -13,14 +13,11 @@ from synfire.analysis import (
     prototype_utilization,
 )
 from synfire.core.config import FFStackConfig, HebbianConfig, WindowConfig
-from synfire.layers.hebbian import HebbianState, init_hebbian, train_hebbian
-from synfire.layers.ff_stack import FFStackState
 
 
 @pytest.fixture(scope="module")
 def fitted_pipeline():
     """Small fitted pipeline shared across analysis tests."""
-    rng = np.random.default_rng(42)
     t = np.arange(500, dtype=np.float64)
     series = np.sin(2 * np.pi * t / 50)
 
@@ -56,7 +53,9 @@ class TestLayerAnomalyDecomposition:
 
     def test_custom_threshold_shifts_deficits(self, fitted_pipeline, test_pairs):
         result_default = layer_anomaly_decomposition(fitted_pipeline._stack, test_pairs)
-        result_high = layer_anomaly_decomposition(fitted_pipeline._stack, test_pairs, threshold=100.0)
+        result_high = layer_anomaly_decomposition(
+            fitted_pipeline._stack, test_pairs, threshold=100.0
+        )
         # With a very high threshold, all deficits should be larger
         assert np.all(result_high >= result_default - 1e-9)
 
@@ -66,7 +65,9 @@ class TestLayerAnomalyDecomposition:
 
     def test_none_threshold_uses_first_layer_config(self, fitted_pipeline, test_pairs):
         expected_threshold = fitted_pipeline._stack.layers[0].config.threshold
-        result_none = layer_anomaly_decomposition(fitted_pipeline._stack, test_pairs, threshold=None)
+        result_none = layer_anomaly_decomposition(
+            fitted_pipeline._stack, test_pairs, threshold=None
+        )
         result_explicit = layer_anomaly_decomposition(
             fitted_pipeline._stack, test_pairs, threshold=expected_threshold
         )

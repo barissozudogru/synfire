@@ -17,16 +17,13 @@ from synfire.core.config import (
 )
 from synfire.layers.ff_layer import (
     _scheduled_lr,
-    forward,
     goodness,
     init_layer,
     train_layer,
     train_step,
 )
 from synfire.layers.ff_stack import init_stack, train_stack
-from synfire.layers.ff_stack import forward_stack
 from synfire.pipeline.anomaly import _ensemble_goodness_deficit
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -82,7 +79,9 @@ class TestCosineLRSchedule:
 
     def test_single_epoch(self):
         # With only one epoch, schedule should return base_lr
-        assert _scheduled_lr(0.05, epoch=0, total_epochs=1, schedule="cosine") == pytest.approx(0.05)
+        assert _scheduled_lr(
+            0.05, epoch=0, total_epochs=1, schedule="cosine"
+        ) == pytest.approx(0.05)
 
     def test_cosine_layer_trains(self, rng):
         """Layer with cosine schedule should converge (loss decreases)."""
@@ -178,7 +177,7 @@ class TestEarlyStopping:
         x_pos = rng.standard_normal((60, 10))
         x_neg = rng.permutation(rng.standard_normal((60, 10)))
         _, losses = train_layer(state, x_pos, x_neg)
-        assert all(np.isfinite(l) for l in losses)
+        assert all(np.isfinite(layer) for layer in losses)
 
     def test_stack_with_early_stopping(self, rng):
         """FFStackConfig early_stopping_patience propagates to each layer."""
@@ -193,7 +192,7 @@ class TestEarlyStopping:
         assert len(all_losses) == 2
         for layer_losses in all_losses:
             assert len(layer_losses) <= 100
-            assert all(np.isfinite(l) for l in layer_losses)
+            assert all(np.isfinite(layer) for layer in layer_losses)
 
     def test_config_negative_patience_rejected(self):
         with pytest.raises(ValueError, match="early_stopping_patience must be >= 0"):
@@ -434,7 +433,7 @@ class TestTrainingHistory:
         pipeline.fit(sine_series)
         for layer_losses in pipeline.training_history:
             assert len(layer_losses) > 0
-            assert all(np.isfinite(l) for l in layer_losses)
+            assert all(np.isfinite(layer) for layer in layer_losses)
 
     def test_history_length_per_layer(self, sine_series, minimal_pipeline_config):
         epochs = minimal_pipeline_config.ff_stack.epochs_per_layer
@@ -606,7 +605,6 @@ class TestIntegrationNewFeatures:
 
     def test_anomaly_detection_spike_sensitivity(self):
         """Pipeline with new features should rank spike regions higher than baseline."""
-        rng = np.random.default_rng(42)
         t = np.arange(1200, dtype=np.float64)
         train = np.sin(2 * np.pi * t / 50)
 

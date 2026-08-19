@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from synfire.localization import AnomalySegment, localize_anomalies
+from synfire.localization import localize_anomalies
 
 
 class TestLocalizeAnomaliesFixedThreshold:
