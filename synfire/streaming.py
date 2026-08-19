@@ -84,13 +84,14 @@ class StreamingScorer:
             ValueError: If ``value`` has more than one dimension, or if its
                 channel count differs from previously ingested points.
         """
-        arr = np.asarray(value, dtype=np.float64).ravel()
+        orig_arr = np.asarray(value, dtype=np.float64)
 
-        if arr.ndim != 1:
-            # ravel() always returns 1-D, but guard against future edge cases.
+        if orig_arr.ndim > 1:
             raise ValueError(
-                f"score_point expects a scalar or 1-D array, got shape {np.asarray(value).shape}"
+                f"score_point expects a scalar or 1-D array, got shape {orig_arr.shape}"
             )
+            
+        arr = orig_arr.ravel()
 
         # Validate channel count consistency once the buffer has at least one entry.
         if self._buffer:
