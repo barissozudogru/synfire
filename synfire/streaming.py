@@ -81,8 +81,9 @@ class StreamingScorer:
             points; ``None`` while the buffer is still filling.
 
         Raises:
-            ValueError: If ``value`` has more than one dimension, or if its
-                channel count differs from previously ingested points.
+            ValueError: If ``value`` has more than one dimension, if it
+                contains non-finite values (NaN or Inf), or if its channel
+                count differs from previously ingested points.
         """
         orig_arr = np.asarray(value, dtype=np.float64)
 
@@ -92,6 +93,12 @@ class StreamingScorer:
             )
 
         arr = orig_arr.ravel()
+
+        # A single NaN or Inf would silently turn every score built from the
+        # buffer into NaN until it leaves again, so reject it up front like
+        # the batch API does.
+        if not np.isfinite(arr).all():
+            raise ValueError("score_point: value contains non-finite values (NaN or Inf)")
 
         # Validate channel count consistency once the buffer has at least one entry.
         if self._buffer:

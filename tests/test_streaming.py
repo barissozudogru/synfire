@@ -234,3 +234,63 @@ class TestScorePointShapeValidation:
         scorer = StreamingScorer(fitted_pipeline)
         with pytest.raises(ValueError, match="expects a scalar or 1-D array"):
             scorer.score_point(np.array([[1.0, 2.0], [3.0, 4.0]]))
+
+
+class TestNonFiniteInputRejected:
+    """Non-finite values must raise, mirroring the batch API's validation."""
+
+    def test_nan_scalar_raises(self, fitted_pipeline):
+        """A NaN point must raise ValueError instead of poisoning the buffer."""
+        scorer = StreamingScorer(fitted_pipeline)
+        with pytest.raises(ValueError, match="non-finite values"):
+            scorer.score_point(float("nan"))
+
+    def test_inf_scalar_raises(self, fitted_pipeline):
+        """An infinite point must raise ValueError like NaN does."""
+        scorer = StreamingScorer(fitted_pipeline)
+        with pytest.raises(ValueError, match="non-finite values"):
+            scorer.score_point(float("inf"))
+
+    def test_nan_inside_vector_raises(self, fitted_pipeline):
+        """A NaN in one channel of a multivariate point must raise."""
+        scorer = StreamingScorer(fitted_pipeline)
+        with pytest.raises(ValueError, match="non-finite values"):
+            scorer.score_point(np.array([0.1, float("nan")]))
+
+    def test_rejected_value_does_not_enter_buffer(self, fitted_pipeline):
+        """A rejected point must leave the buffer untouched for later points."""
+        scorer = StreamingScorer(fitted_pipeline)
+        scorer.score_point(0.1)
+        fullness_before = scorer.buffer_fullness
+        with pytest.raises(ValueError, match="non-finite values"):
+            scorer.score_point(float("nan"))
+        assert scorer.buffer_fullness == fullness_before
+
+    def test_scorer_usable_after_rejected_value(self, fitted_pipeline):
+        """After a rejected point, valid input must still produce scores."""
+        scorer = StreamingScorer(fitted_pipeline)
+        window_size = fitted_pipeline.config.window.window_size
+        t = np.arange(window_size + 10, dtype=np.float64)
+        series = np.sin(2 * np.pi * t / 50)
+        result = None
+        for i, v in enumerate(series):
+            if i == 3:
+                with pytest.raises(ValueError, match="non-finite values"):
+                    scorer.score_point(float("nan"))
+            result = scorer.score_point(v)
+        assert result is not None
+        assert np.isfinite(result)
+
+    def test_finite_spike_after_valid_data_scores_normally(self, fitted_pipeline):
+        """A large but finite spike must yield a finite score, not an error."""
+        scorer = StreamingScorer(fitted_pipeline)
+        window_size = fitted_pipeline.config.window.window_size
+        t = np.arange(window_size + 1, dtype=np.float64)
+        result = None
+        for v in np.sin(2 * np.pi * t / 50):
+            result = scorer.score_point(v)
+        assert result is not None
+        assert np.isfinite(result)
+        spike_score = scorer.score_point(50.0)
+        assert spike_score is not None
+        assert np.isfinite(spike_score)
