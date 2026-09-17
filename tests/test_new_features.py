@@ -840,6 +840,32 @@ class TestMultiResolutionPipeline:
         # Smaller window -> more windows -> longer score array
         assert len(per_res[0]) > len(per_res[1])
 
+    def test_combine_keeps_score_indices_aligned(self):
+        """Combined slot j must blend per-resolution scores for the same sample.
+
+        All resolutions share one stride, so score index i describes the
+        window starting at i * stride + stride in every resolution. A 100
+        sample series yields 92 scores at window size 8 and 36 at 64, and
+        combining must pair index with index, not squeeze 92 slots into 36.
+        """
+        mr = MultiResolutionPipeline(window_sizes=[8, 64], combination="mean")
+        fine = np.arange(92, dtype=np.float64)
+        coarse = np.zeros(36)
+        combined = mr._combine([fine, coarse])
+        assert np.allclose(combined, 0.5 * fine[:36])
+
+    def test_combined_scores_equal_indexwise_weighted_mean(self, sine_series):
+        mr = MultiResolutionPipeline(window_sizes=[8, 32])
+        mr.fit(sine_series)
+        per_res = mr.score_decomposed_per_resolution(sine_series)
+        combined = mr.anomaly_scores(sine_series)
+        min_len = min(len(s) for s in per_res)
+        assert len(combined) == min_len
+        expected = np.zeros(min_len)
+        for weight, scores in zip(mr._weights, per_res, strict=True):
+            expected += weight * scores[:min_len]
+        assert np.allclose(combined, expected)
+
     def test_repr_unfitted(self):
         mr = MultiResolutionPipeline(window_sizes=[8, 16])
         assert "unfitted" in repr(mr)

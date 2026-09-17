@@ -2,7 +2,7 @@
 
 Runs independent SynfirePipeline instances at multiple window sizes and
 combines their anomaly scores via weighted averaging or max pooling.
-Scores are resampled to a common length (the shortest output) before combining.
+Scores are truncated to a common length (the shortest output) before combining.
 
 Example::
 
@@ -38,7 +38,7 @@ class MultiResolutionPipeline:
     """Anomaly detection pipeline operating at multiple temporal resolutions.
 
     Fits an independent :class:`~synfire.api.SynfirePipeline` for each window
-    size. At inference time the per-resolution scores are resampled to the
+    size. At inference time the per-resolution scores are truncated to the
     shortest common length and combined via weighted averaging or max pooling.
 
     Parameters
@@ -145,8 +145,8 @@ class MultiResolutionPipeline:
     def anomaly_scores(self, series: NDArray) -> NDArray:
         """Compute combined anomaly scores across all resolutions.
 
-        Per-resolution scores are resampled to the minimum output length using
-        nearest-neighbor interpolation, then combined via the configured method.
+        Per-resolution scores are truncated to the minimum output length, then
+        combined via the configured method.
 
         Args:
             series: 1D or 2D time series array.
@@ -176,23 +176,18 @@ class MultiResolutionPipeline:
         return [p.anomaly_scores(series) for p in self._pipelines]
 
     def _combine(self, per_resolution: list[NDArray]) -> NDArray:
-        """Resample all score arrays to a common length and combine."""
+        """Truncate all score arrays to a common length and combine."""
         min_len = min(len(s) for s in per_resolution)
         if min_len == 0:
             return np.zeros(0)
 
-        resampled = []
-        for scores in per_resolution:
-            if len(scores) == min_len:
-                resampled.append(scores)
-            else:
-                # Nearest-neighbor resample
-                indices = np.round(
-                    np.linspace(0, len(scores) - 1, min_len)
-                ).astype(int)
-                resampled.append(scores[indices])
-
-        stacked = np.stack(resampled, axis=0)  # (n_resolutions, min_len)
+        # All resolutions share one stride, so score index i describes the
+        # window starting at i * stride + stride in every resolution.
+        # Truncating keeps those indices aligned; resampling to a shorter
+        # length would pair early samples of one resolution with late
+        # samples of another.
+        # Shape: (n_resolutions, min_len)
+        stacked = np.stack([s[:min_len] for s in per_resolution], axis=0)
 
         if self.combination == "max":
             return stacked.max(axis=0)
