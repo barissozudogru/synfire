@@ -121,6 +121,18 @@ class TestSynfirePipeline:
         expected_n = (len(sine_series) - 20) // 1 + 1 - 1
         assert scores.shape == (expected_n,)
 
+    def test_anomaly_scores_single_window_series(self, sine_series, small_config):
+        # A series of exactly window_size passes validation but yields one
+        # window, so zero window pairs. Scoring must return an empty array
+        # rather than crash on the missing first transition.
+        pipeline = SynfirePipeline(small_config)
+        pipeline.fit(sine_series)
+        series = sine_series[:20]
+        scores = pipeline.anomaly_scores(series)
+        assert scores.shape == (0,)
+        decomposed = pipeline.score_decomposed(series)
+        assert decomposed.combined.shape == (0,)
+
     def test_cluster_shape(self, sine_series, small_config):
         pipeline = SynfirePipeline(small_config)
         pipeline.fit(sine_series)

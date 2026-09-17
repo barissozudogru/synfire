@@ -74,6 +74,11 @@ def _transition_surprise(
     Returns:
         Surprise scores of shape (len(labels),). First element is 0.
     """
+    # An empty label sequence has no transitions and no first element to pin
+    # at zero; a series of exactly window_size produces one such batch.
+    if len(labels) == 0:
+        return np.empty(0)
+
     if trans_prob is None:
         trans_prob = _build_transition_matrix(labels, n_prototypes, eps)
 
