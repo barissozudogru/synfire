@@ -101,6 +101,11 @@ def _normalize_fixed(arr: NDArray, arr_min: float, arr_range: float) -> NDArray:
 
 def _normalize_batch(arr: NDArray) -> NDArray:
     """Fallback batch normalization (legacy behavior)."""
+    # An empty batch has no min or max to reduce over; there is nothing to
+    # normalize, and a series of exactly window_size produces one such batch.
+    if len(arr) == 0:
+        return np.zeros_like(arr)
+
     rng = arr.max() - arr.min()
     if rng < 1e-12:
         return np.zeros_like(arr)

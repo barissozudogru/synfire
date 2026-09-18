@@ -11,6 +11,7 @@ from synfire.core.config import (
     WindowConfig,
 )
 from synfire.layers.ff_layer import forward, goodness, init_layer, train_layer
+from synfire.pipeline.anomaly import anomaly_scores, anomaly_scores_decomposed
 from synfire.preprocessing.normalization import normalize_windows
 from synfire.preprocessing.windows import (
     make_consecutive_pairs,
@@ -131,6 +132,29 @@ class TestSynfirePipeline:
         scores = pipeline.anomaly_scores(series)
         assert scores.shape == (0,)
         decomposed = pipeline.score_decomposed(series)
+        assert decomposed.combined.shape == (0,)
+
+    def test_anomaly_scores_single_window_series_without_scaler(
+        self, sine_series, small_config,
+    ):
+        # Without a scaler the components are normalized against the batch
+        # itself, and this batch is empty. Scoring must still return an
+        # empty array rather than crash reducing an empty batch.
+        pipeline = SynfirePipeline(small_config)
+        pipeline.fit(sine_series)
+        test_pairs = pipeline._prepare_test_pairs(sine_series[:20])
+        assert len(test_pairs) == 0
+        stack, hebbian = pipeline._stack, pipeline._hebbian
+        assert stack is not None and hebbian is not None
+        scores = anomaly_scores(
+            stack, hebbian, test_pairs,
+            small_config.anomaly, pipeline._effective_threshold,
+        )
+        assert scores.shape == (0,)
+        decomposed = anomaly_scores_decomposed(
+            stack, hebbian, test_pairs,
+            small_config.anomaly, pipeline._effective_threshold,
+        )
         assert decomposed.combined.shape == (0,)
 
     def test_cluster_shape(self, sine_series, small_config):
