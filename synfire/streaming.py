@@ -45,6 +45,7 @@ class StreamingScorer:
         # Buffer holds window_size + 1 raw scalar/vector values so we can form
         # two consecutive windows: buffer[:-1] and buffer[1:].
         self._buffer: deque = deque(maxlen=self._window_size + 1)
+        self._prev_label: int | None = None
 
     @classmethod
     def from_pipeline(cls, pipeline: SynfirePipeline) -> StreamingScorer:
@@ -129,7 +130,10 @@ class StreamingScorer:
         # Build the pair and score it
         pair = np.concatenate([left_norm, right_norm])[np.newaxis, :]  # (1, 2*D)
 
-        from synfire.pipeline.anomaly import anomaly_scores
+        if self._pipeline._stack is None or self._pipeline._hebbian is None:
+            raise RuntimeError("Pipeline state is corrupted: missing stack or hebbian.")
+
+        from synfire.pipeline.anomaly import _normalize_fixed, anomaly_scores
 
         scores = anomaly_scores(
             self._pipeline._stack,
@@ -139,7 +143,27 @@ class StreamingScorer:
             self._pipeline._effective_threshold,
             scaler=self._pipeline._anomaly_scaler,
         )
-        return float(scores[0])
+        score = float(scores[0])
+
+        anomaly_cfg = self._pipeline.config.anomaly
+        scaler = self._pipeline._anomaly_scaler
+        if anomaly_cfg.use_transition and scaler is not None:
+            from synfire.layers.ff_stack import forward_stack
+            from synfire.layers.hebbian import assign
+
+            acts = forward_stack(self._pipeline._stack, pair)
+            cur_label = int(assign(self._pipeline._hebbian, acts[-1])[0])
+            if self._prev_label is not None:
+                surprise = -np.log(scaler.trans_prob[self._prev_label, cur_label] + 1e-12)
+                norm_surprise = float(
+                    _normalize_fixed(
+                        np.array([surprise]), scaler.surprise_min, scaler.surprise_range
+                    )[0]
+                )
+                score += anomaly_cfg.weight_transition * norm_surprise
+            self._prev_label = cur_label
+
+        return score
 
     def _normalize_window(self, window: NDArray) -> NDArray:
         """Apply the pipeline's normalization to a single flattened window."""
@@ -160,5 +184,6 @@ class StreamingScorer:
         return len(self._buffer) == self._window_size + 1
 
     def reset(self) -> None:
-        """Clear the internal buffer."""
+        """Clear the internal buffer and transition state."""
         self._buffer.clear()
+        self._prev_label = None
