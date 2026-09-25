@@ -294,3 +294,103 @@ class TestNonFiniteInputRejected:
         spike_score = scorer.score_point(50.0)
         assert spike_score is not None
         assert np.isfinite(spike_score)
+
+
+class TestStreamingMatchesBatchAnomalyScores:
+    """Verify that StreamingScorer output matches pipeline.anomaly_scores."""
+
+    def test_streaming_matches_batch_default_config(self, fitted_pipeline):
+        """Streaming scores must match batch scores at every position."""
+        t = np.arange(200, dtype=np.float64)
+        series = np.sin(2 * np.pi * t / 50)
+        batch_scores = fitted_pipeline.anomaly_scores(series)
+
+        scorer = StreamingScorer(fitted_pipeline)
+        stream_scores = []
+        for v in series:
+            s = scorer.score_point(v)
+            if s is not None:
+                stream_scores.append(s)
+
+        stream_arr = np.array(stream_scores)
+        assert len(stream_arr) == len(batch_scores)
+        np.testing.assert_allclose(stream_arr, batch_scores, atol=1e-12)
+
+    def test_streaming_matches_batch_after_reset(self, fitted_pipeline):
+        """Resetting the scorer must clear transition state for the next feed."""
+        t1 = np.arange(100, dtype=np.float64)
+        series1 = np.sin(2 * np.pi * t1 / 50)
+        scorer = StreamingScorer(fitted_pipeline)
+        for v in series1:
+            scorer.score_point(v)
+
+        scorer.reset()
+
+        t2 = np.arange(150, dtype=np.float64)
+        series2 = np.cos(2 * np.pi * t2 / 40)
+        batch_scores = fitted_pipeline.anomaly_scores(series2)
+
+        stream_scores = []
+        for v in series2:
+            s = scorer.score_point(v)
+            if s is not None:
+                stream_scores.append(s)
+
+        stream_arr = np.array(stream_scores)
+        assert len(stream_arr) == len(batch_scores)
+        np.testing.assert_allclose(stream_arr, batch_scores, atol=1e-12)
+
+    def test_streaming_matches_batch_multivariate(self):
+        """Multivariate series streaming must match batch anomaly scores."""
+        t = np.arange(200, dtype=np.float64)
+        series = np.column_stack([np.sin(2 * np.pi * t / 50), np.cos(2 * np.pi * t / 50)])
+
+        config = SynfireConfig(
+            window=WindowConfig(window_size=10, stride=1),
+            ff_stack=FFStackConfig(layer_dims=(16,), lr=0.01, threshold=2.0, epochs_per_layer=5),
+            hebbian=HebbianConfig(n_prototypes=4, lr=0.05, inhibition_strength=0.01, epochs=5),
+        )
+        pipeline = SynfirePipeline(config)
+        pipeline.fit(series)
+
+        batch_scores = pipeline.anomaly_scores(series)
+
+        scorer = StreamingScorer(pipeline)
+        stream_scores = []
+        for v in series:
+            s = scorer.score_point(v)
+            if s is not None:
+                stream_scores.append(s)
+
+        stream_arr = np.array(stream_scores)
+        assert len(stream_arr) == len(batch_scores)
+        np.testing.assert_allclose(stream_arr, batch_scores, atol=1e-12)
+
+    def test_streaming_matches_batch_without_transition(self):
+        """Streaming scores must match batch when transition component is disabled."""
+        from synfire.core.config import AnomalyConfig
+
+        t = np.arange(150, dtype=np.float64)
+        series = np.sin(2 * np.pi * t / 50)
+
+        config = SynfireConfig(
+            window=WindowConfig(window_size=10, stride=1),
+            ff_stack=FFStackConfig(layer_dims=(16,), lr=0.01, threshold=2.0, epochs_per_layer=5),
+            hebbian=HebbianConfig(n_prototypes=4, lr=0.05, inhibition_strength=0.01, epochs=5),
+            anomaly=AnomalyConfig(use_transition=False),
+        )
+        pipeline = SynfirePipeline(config)
+        pipeline.fit(series)
+
+        batch_scores = pipeline.anomaly_scores(series)
+
+        scorer = StreamingScorer(pipeline)
+        stream_scores = []
+        for v in series:
+            s = scorer.score_point(v)
+            if s is not None:
+                stream_scores.append(s)
+
+        stream_arr = np.array(stream_scores)
+        assert len(stream_arr) == len(batch_scores)
+        np.testing.assert_allclose(stream_arr, batch_scores, atol=1e-12)
