@@ -110,9 +110,15 @@ def evaluate_multi_seed(
         pipeline.fit(train)
         scores = pipeline.anomaly_scores(test)
 
-        # Align labels and scores to the shorter length
-        n = min(len(scores), len(labels))
-        auc = mann_whitney_auc(scores[:n], labels[:n])
+        if len(labels) != len(scores):
+            raise ValueError(
+                f"labels length ({len(labels)}) does not match "
+                f"anomaly_scores length ({len(scores)}). "
+                "labels must have shape (N_windows - 1,) matching anomaly_scores output. "
+                "Use SynfirePipeline.score_index_to_sample to map per-sample labels."
+            )
+
+        auc = mann_whitney_auc(scores, labels)
         auc_scores.append(auc)
 
     return EvaluationResult(seeds=seeds, auc_scores=auc_scores)

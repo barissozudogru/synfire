@@ -93,3 +93,13 @@ class TestMultiSeedEvaluation:
         result = EvaluationResult(seeds=[0, 1, 2], auc_scores=[0.7, 0.8, 0.9])
         assert result.mean_auc == pytest.approx(0.8)
         assert result.std_auc > 0
+
+    def test_multi_seed_raises_when_labels_longer_than_scores(self, sine_series, small_config):
+        labels = np.zeros(len(sine_series))
+        with pytest.raises(ValueError, match="does not match anomaly_scores length"):
+            evaluate_multi_seed(sine_series, sine_series, labels, config=small_config, n_seeds=1)
+
+    def test_multi_seed_raises_when_labels_shorter_than_scores(self, sine_series, small_config):
+        labels = np.zeros(10)
+        with pytest.raises(ValueError, match="score_index_to_sample"):
+            evaluate_multi_seed(sine_series, sine_series, labels, config=small_config, n_seeds=1)
