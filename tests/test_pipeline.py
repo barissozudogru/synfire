@@ -345,3 +345,64 @@ class TestConfigValidation:
     def test_negative_weight_rejected(self):
         with pytest.raises(ValueError, match="weight_goodness must be >= 0"):
             AnomalyConfig(weight_goodness=-1.0)
+
+
+class TestAnomalyScoringMemory:
+    """Test that anomaly scoring avoids naive broadcast tensor allocations."""
+
+    def test_compute_components_avoids_broadcast_tensor(self):
+        """Distance computation avoids materializing (batch, n_prototypes, D) tensor."""
+        import tracemalloc
+
+        from synfire.core.config import FFStackConfig
+        from synfire.layers.ff_stack import FFStackState
+        from synfire.layers.hebbian import HebbianState
+        from synfire.pipeline.anomaly import _compute_components
+
+        batch = 10000
+        d = 64
+        n_proto = 16
+        x = np.ones((batch, d), dtype=np.float64)
+        proto = np.ones((n_proto, d), dtype=np.float64)
+        hebbian = HebbianState(prototypes=proto, config=HebbianConfig(n_prototypes=n_proto))
+        stack = FFStackState(layers=[], config=FFStackConfig(layer_dims=[d]))
+        config = AnomalyConfig(use_goodness=False, use_distance=True, use_transition=True)
+
+        tracemalloc.start()
+        _compute_components(stack, hebbian, x, config, threshold=2.0, activations=[x])
+        _, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+
+        naive_tensor_bytes = batch * n_proto * d * 8  # ~81.9 MB
+        # Peak memory must be well below the naive tensor allocation.
+        assert peak < naive_tensor_bytes // 4
+
+    def test_compute_components_computes_distances_once(self, monkeypatch):
+        """Distance matrix is computed once when both distance and transition are enabled."""
+        import synfire.pipeline.anomaly as anomaly_mod
+        from synfire.core.config import FFStackConfig
+        from synfire.layers.ff_stack import FFStackState
+        from synfire.layers.hebbian import HebbianState
+        from synfire.pipeline.anomaly import _compute_components
+
+        calls = 0
+        original_dist = anomaly_mod._pairwise_sq_distances
+
+        def mock_dist(x, proto):
+            nonlocal calls
+            calls += 1
+            return original_dist(x, proto)
+
+        monkeypatch.setattr(anomaly_mod, "_pairwise_sq_distances", mock_dist)
+
+        batch, d, n_proto = 50, 16, 4
+        x = np.ones((batch, d))
+        proto = np.ones((n_proto, d))
+        hebbian = HebbianState(prototypes=proto, config=HebbianConfig(n_prototypes=n_proto))
+        stack = FFStackState(layers=[], config=FFStackConfig(layer_dims=[d]))
+        config = AnomalyConfig(use_goodness=False, use_distance=True, use_transition=True)
+
+        _compute_components(stack, hebbian, x, config, threshold=2.0, activations=[x])
+        assert calls == 1
+
+
