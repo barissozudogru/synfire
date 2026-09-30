@@ -62,6 +62,26 @@ def init_hebbian(data: NDArray, config: HebbianConfig) -> HebbianState:
     return HebbianState(prototypes=prototypes, config=config)
 
 
+def _pairwise_sq_distances(x: NDArray, prototypes: NDArray) -> NDArray:
+    """Compute pairwise squared L2 distances between inputs and prototypes.
+
+    Uses ||x - p||^2 = ||x||^2 + ||p||^2 - 2 * (x @ p^T) to avoid materializing
+    the full (batch, n_prototypes, D) broadcast tensor.
+
+    Args:
+        x: Input array of shape (batch, D).
+        prototypes: Prototype array of shape (n_prototypes, D).
+
+    Returns:
+        Distance matrix of shape (batch, n_prototypes).
+    """
+    x_sq = np.sum(x ** 2, axis=1, keepdims=True)
+    p_sq = np.sum(prototypes ** 2, axis=1, keepdims=True).T
+    dists = x_sq + p_sq - 2.0 * (x @ prototypes.T)
+    np.maximum(dists, 0.0, out=dists)
+    return dists
+
+
 def assign(state: HebbianState, x: NDArray) -> NDArray:
     """Winner-Take-All assignment: each input goes to nearest prototype.
 
@@ -72,10 +92,7 @@ def assign(state: HebbianState, x: NDArray) -> NDArray:
     Returns:
         Cluster indices of shape (batch,).
     """
-    # (batch, n_prototypes)
-    dists = np.sum(
-        (x[:, np.newaxis, :] - state.prototypes[np.newaxis, :, :]) ** 2, axis=2
-    )
+    dists = _pairwise_sq_distances(x, state.prototypes)
     return np.argmin(dists, axis=1)
 
 
@@ -85,10 +102,9 @@ def distances_to_prototypes(state: HebbianState, x: NDArray) -> NDArray:
     Returns:
         Distances of shape (batch,).
     """
-    dists = np.sum(
-        (x[:, np.newaxis, :] - state.prototypes[np.newaxis, :, :]) ** 2, axis=2
-    )
+    dists = _pairwise_sq_distances(x, state.prototypes)
     return np.min(dists, axis=1)
+
 
 
 def update_step(state: HebbianState, x: NDArray) -> HebbianState:

@@ -11,7 +11,11 @@ from numpy.typing import NDArray
 from synfire.core.config import AnomalyConfig
 from synfire.layers.ff_layer import goodness
 from synfire.layers.ff_stack import FFStackState, forward_stack
-from synfire.layers.hebbian import HebbianState, assign, distances_to_prototypes
+from synfire.layers.hebbian import (
+    HebbianState,
+    _pairwise_sq_distances,
+    assign,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -163,14 +167,17 @@ def _compute_components(
         else:
             goodness_deficit = threshold - goodness(representations)
 
-    dist = distances_to_prototypes(hebbian, representations) if config.use_distance else None
-
-    surprise = None
-    if config.use_transition:
-        labels = assign(hebbian, representations)
-        surprise = _transition_surprise(
-            labels, hebbian.config.n_prototypes, trans_prob=trans_prob,
-        )
+    dist: NDArray | None = None
+    surprise: NDArray | None = None
+    if config.use_distance or config.use_transition:
+        dists = _pairwise_sq_distances(representations, hebbian.prototypes)
+        if config.use_distance:
+            dist = np.min(dists, axis=1)
+        if config.use_transition:
+            labels = np.argmin(dists, axis=1)
+            surprise = _transition_surprise(
+                labels, hebbian.config.n_prototypes, trans_prob=trans_prob,
+            )
 
     return goodness_deficit, dist, surprise
 

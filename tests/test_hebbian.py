@@ -2,6 +2,8 @@ import numpy as np
 
 from synfire.core.config import HebbianConfig
 from synfire.layers.hebbian import (
+    HebbianState,
+    _pairwise_sq_distances,
     assign,
     distances_to_prototypes,
     init_hebbian,
@@ -65,6 +67,44 @@ class TestDistances:
         dists = distances_to_prototypes(state, data)
         assert dists.shape == (30,)
         assert np.all(dists >= 0)
+
+    def test_pairwise_sq_distances_matches_broadcast(self, rng):
+        """Pairwise squared distances match naive broadcasting."""
+        x = rng.standard_normal((50, 16))
+        proto = rng.standard_normal((6, 16))
+        state = HebbianState(prototypes=proto, config=HebbianConfig(n_prototypes=6))
+
+        diff = x[:, np.newaxis, :] - proto[np.newaxis, :, :]
+        expected_dists = np.sum(diff ** 2, axis=2)
+        expected_labels = np.argmin(expected_dists, axis=1)
+        expected_min_dists = np.min(expected_dists, axis=1)
+
+        got_dists = _pairwise_sq_distances(x, proto)
+        got_labels = assign(state, x)
+        got_min_dists = distances_to_prototypes(state, x)
+
+        np.testing.assert_allclose(got_dists, expected_dists, atol=1e-12)
+        np.testing.assert_array_equal(got_labels, expected_labels)
+        np.testing.assert_allclose(got_min_dists, expected_min_dists, atol=1e-12)
+
+    def test_pairwise_sq_distances_empty(self):
+        """Empty batch returns empty distance array."""
+        x = np.empty((0, 16))
+        proto = np.ones((4, 16))
+        state = HebbianState(prototypes=proto, config=HebbianConfig(n_prototypes=4))
+
+        dists = _pairwise_sq_distances(x, proto)
+        assert dists.shape == (0, 4)
+        assert assign(state, x).shape == (0,)
+        assert distances_to_prototypes(state, x).shape == (0,)
+
+    def test_pairwise_sq_distances_non_negative(self, rng):
+        """Distance values are non-negative even for near-identical rows."""
+        proto = rng.standard_normal((5, 8))
+        x = proto + rng.standard_normal((5, 8)) * 1e-9
+        dists = _pairwise_sq_distances(x, proto)
+        assert np.all(dists >= 0.0)
+
 
 
 class TestKmeansPlusPlusEdgeCases:
