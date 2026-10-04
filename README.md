@@ -2,11 +2,25 @@
 
 Forward-Forward + Hebbian competitive learning for time series anomaly detection, clustering, and representation learning.
 
-## Install
+## Status and requirements
+
+A research implementation of Forward-Forward and Hebbian competitive learning.
+Use the tests and benchmark code to evaluate it for your own time series; this
+repository does not establish production suitability for a specific dataset.
+
+Requires Python 3.12 and Poetry.
+
+## Install from source
 
 ```bash
+git clone https://github.com/barissozudogru/synfire.git
+cd synfire
 poetry install
 ```
+
+Install this project from its source repository. The
+[package named `synfire` on PyPI](https://pypi.org/project/synfire/) is a separate
+model registry SDK.
 
 ## Usage
 
@@ -42,5 +56,14 @@ start, end = pipeline.score_window_bounds(worst) # window the score covers
 
 ```bash
 poetry run pytest -v
-poetry run ruff check synfire/ tests/
+poetry run ruff check synfire/ tests/ benchmarks/
+poetry run pyright synfire/
 ```
+
+## Support and license
+
+Report reproducible problems through [GitHub issues](https://github.com/barissozudogru/synfire/issues).
+Include your Python version, input shapes, pipeline settings, and a traceback.
+Avoid attaching private datasets.
+
+Licensed under [MIT](./LICENSE).
