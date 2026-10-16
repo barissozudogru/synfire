@@ -63,6 +63,9 @@ def make_random_pairs(
     Returns:
         Tuple of (left, right) arrays, each of shape (N, D).
     """
+    if min_gap < 0:
+        raise ValueError(f"min_gap must be >= 0, got {min_gap}")
+
     n = len(windows)
 
     if n <= 1:

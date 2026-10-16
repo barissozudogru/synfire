@@ -90,6 +90,12 @@ class TestRandomPairs:
 
 
 class TestRandomPairsEdgeCases:
+    def test_negative_min_gap_raises(self, rng):
+        windows = np.arange(12, dtype=np.float64).reshape(4, 3)
+
+        with pytest.raises(ValueError, match="min_gap must be >= 0"):
+            make_random_pairs(windows, rng, min_gap=-1)
+
     def test_n_equals_1_returns_copy(self, rng):
         windows = np.array([[1.0, 2.0, 3.0]])
         left, right = make_random_pairs(windows, rng, min_gap=5)
