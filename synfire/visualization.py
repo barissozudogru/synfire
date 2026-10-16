@@ -12,6 +12,7 @@ Typical usage::
 
 from __future__ import annotations
 
+from importlib import import_module
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -25,8 +26,8 @@ if TYPE_CHECKING:
 def _require_matplotlib():
     """Import and return (matplotlib, pyplot) or raise ImportError with guidance."""
     try:
-        import matplotlib
-        import matplotlib.pyplot as plt
+        matplotlib = import_module("matplotlib")
+        plt = import_module("matplotlib.pyplot")
         return matplotlib, plt
     except ImportError as exc:
         raise ImportError(
@@ -182,7 +183,7 @@ def plot_anomaly_scores(
         if in_anomaly:
             ax.axvspan(start, len(labels), alpha=0.25, color="red", label="_nolegend_")
         # Add a single legend entry for anomaly regions
-        from matplotlib.patches import Patch
+        Patch = import_module("matplotlib.patches").Patch
         ax.legend(handles=[
             ax.get_lines()[0],
             *(ax.get_lines()[1:] if threshold is not None else []),
