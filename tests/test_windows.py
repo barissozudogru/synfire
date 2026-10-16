@@ -142,3 +142,33 @@ class TestNormalization:
     def test_unknown_method_raises(self, sine_series):
         with pytest.raises(ValueError, match="method must be"):
             NormConfig(method="invalid")
+
+    @pytest.mark.parametrize("method", ["zscore", "minmax"])
+    @pytest.mark.parametrize("dtype", [np.float16, np.float32, np.float64, np.int32, np.int64])
+    def test_constant_window_with_zero_eps_returns_zeros(self, method, dtype):
+        windows = np.ones((2, 4), dtype=dtype)
+
+        normed = normalize_windows(windows, NormConfig(method=method, eps=0.0))
+
+        np.testing.assert_array_equal(normed, np.zeros_like(windows))
+
+    @pytest.mark.parametrize("method", ["zscore", "minmax"])
+    @pytest.mark.parametrize("dtype", [np.int32, np.int64])
+    def test_integer_windows_match_float_normalization(self, method, dtype):
+        windows = np.arange(8, dtype=dtype).reshape(2, 4)
+        config = NormConfig(method=method, eps=0.0)
+
+        normed = normalize_windows(windows, config)
+        expected = normalize_windows(windows.astype(np.float64), config)
+
+        np.testing.assert_allclose(normed, expected)
+        assert np.issubdtype(normed.dtype, np.floating)
+
+    @pytest.mark.parametrize("method", ["zscore", "minmax"])
+    @pytest.mark.parametrize("dtype", [np.float16, np.float32])
+    def test_preserves_float_input_dtype(self, method, dtype):
+        windows = np.arange(8, dtype=dtype).reshape(2, 4)
+
+        normed = normalize_windows(windows, NormConfig(method=method))
+
+        assert normed.dtype == windows.dtype

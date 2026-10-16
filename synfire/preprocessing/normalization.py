@@ -24,10 +24,17 @@ def normalize_windows(windows: NDArray, config: NormConfig | None = None) -> NDA
     if config.method == "zscore":
         mean = np.mean(windows, axis=1, keepdims=True)
         std = np.std(windows, axis=1, keepdims=True)
-        return (windows - mean) / (std + config.eps)
+        numerator = windows - mean
+        denominator = std + config.eps
     elif config.method == "minmax":
         wmin = np.min(windows, axis=1, keepdims=True)
         wmax = np.max(windows, axis=1, keepdims=True)
-        return (windows - wmin) / (wmax - wmin + config.eps)
+        numerator = windows - wmin
+        denominator = wmax - wmin + config.eps
     else:
         raise ValueError(f"Unknown normalization method: {config.method}")
+
+    # A constant window has no scale. Treat it as all zeros, including when
+    # eps=0 is explicitly requested, rather than returning NaN from 0 / 0.
+    denominator = np.where(denominator == 0, 1, denominator)
+    return numerator / denominator
