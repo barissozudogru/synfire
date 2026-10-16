@@ -977,3 +977,10 @@ class TestCombinedFeatures:
         assert updated.ff_stack.weight_decay == pytest.approx(0.01)
         assert updated.ff_stack.layer_norm is True
         assert updated.ff_stack.negative_strategy == "curriculum"
+
+
+def test_nested_replace_rejects_dataclass_types():
+    config = SynfireConfig().replace(window=WindowConfig)
+
+    with pytest.raises(ValueError, match="non-dataclass field"):
+        config.replace(window__window_size=10)

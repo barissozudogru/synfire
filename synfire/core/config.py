@@ -280,7 +280,7 @@ class SynfireConfig:
         # Apply nested replacements by creating new sub-config instances.
         for parent_name, child_kwargs in nested.items():
             current_sub = getattr(self, parent_name)
-            if not dataclasses.is_dataclass(current_sub):
+            if not dataclasses.is_dataclass(current_sub) or isinstance(current_sub, type):
                 raise ValueError(
                     f"Cannot use nested path for non-dataclass field {parent_name!r}"
                 )
