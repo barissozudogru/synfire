@@ -62,3 +62,8 @@ def test_naive_indexing_is_offset(fitted):
     w = fitted.config.window
     assert fitted.score_index_to_sample(0) == w.stride
     assert fitted.score_index_to_sample(0) != 0
+
+
+def test_negative_score_index_is_rejected(fitted):
+    with pytest.raises(ValueError, match="score_index must be >= 0"):
+        fitted.score_index_to_sample(-1)
