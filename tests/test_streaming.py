@@ -122,6 +122,53 @@ class TestScorePoint:
         assert isinstance(result, float)
 
 
+def test_streaming_respects_window_stride():
+    """Streaming scores match batch scores when windows are strided."""
+    config = SynfireConfig(
+        window=WindowConfig(window_size=6, stride=2),
+        ff_stack=FFStackConfig(layer_dims=(8,), lr=0.01, epochs_per_layer=3),
+        hebbian=HebbianConfig(n_prototypes=3, epochs=3),
+    )
+    series = np.sin(np.arange(80, dtype=float) / 5)
+    pipeline = SynfirePipeline(config).fit(series)
+    batch_scores = pipeline.anomaly_scores(series)
+
+    scorer = StreamingScorer(pipeline)
+    stream_scores = [score for value in series if (score := scorer.score_point(value)) is not None]
+
+    assert len(stream_scores) == len(batch_scores)
+    np.testing.assert_allclose(stream_scores, batch_scores)
+
+
+def test_strided_streaming_reports_multivariate_readiness_and_cadence():
+    """Strided multivariate scores start and repeat at the configured cadence."""
+    config = SynfireConfig(
+        window=WindowConfig(window_size=5, stride=3),
+        ff_stack=FFStackConfig(layer_dims=(8,), lr=0.01, epochs_per_layer=3),
+        hebbian=HebbianConfig(n_prototypes=3, epochs=3),
+    )
+    t = np.arange(38, dtype=float)
+    series = np.column_stack([np.sin(t / 4), np.cos(t / 6)])
+    pipeline = SynfirePipeline(config).fit(series)
+    scorer = StreamingScorer(pipeline)
+
+    score_indices = [
+        index
+        for index, value in enumerate(series)
+        if scorer.score_point(value) is not None
+    ]
+
+    expected_indices = list(
+        range(
+            config.window.window_size + config.window.stride - 1,
+            len(series),
+            config.window.stride,
+        )
+    )
+    assert score_indices == expected_indices
+    assert "window_size + 1" not in StreamingScorer.__doc__
+
+
 class TestReset:
     """Tests for the reset() method."""
 
