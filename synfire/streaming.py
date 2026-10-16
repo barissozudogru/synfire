@@ -15,15 +15,17 @@ if TYPE_CHECKING:
 class StreamingScorer:
     """Score a time series one point at a time without recomputing history.
 
-    Maintains an internal buffer of ``window_size + 1`` raw values. Once the
-    buffer is full, each new data point triggers:
+    Maintains an internal buffer of ``window_size + stride`` raw values. Once
+    the buffer is full, each new data point at the configured stride triggers:
 
     1. Extraction of two consecutive windows (oldest and newest).
     2. Normalization via the fitted pipeline's ``NormConfig``.
     3. Anomaly scoring via the fitted pipeline's stack, Hebbian layer, and
        anomaly scaler.
 
-    Until the buffer is full, ``score_point`` returns ``None``.
+    Until the buffer is full, ``score_point`` returns ``None``. With a stride
+    greater than one, the first score is emitted after ``window_size + stride``
+    points, then scores are emitted every ``stride`` points.
 
     Example::
 
@@ -42,9 +44,11 @@ class StreamingScorer:
             raise RuntimeError("Pipeline must be fitted before creating a StreamingScorer.")
         self._pipeline = pipeline
         self._window_size = pipeline.config.window.window_size
-        # Buffer holds window_size + 1 raw scalar/vector values so we can form
-        # two consecutive windows: buffer[:-1] and buffer[1:].
-        self._buffer: deque = deque(maxlen=self._window_size + 1)
+        self._stride = pipeline.config.window.stride
+        # Buffer holds enough points to form windows whose starts are separated
+        # by the configured stride.
+        self._buffer: deque = deque(maxlen=self._window_size + self._stride)
+        self._points_seen = 0
         self._prev_label: int | None = None
 
     @classmethod
@@ -78,8 +82,8 @@ class StreamingScorer:
                 window buffer.
 
         Returns:
-            Anomaly score (float) once the buffer contains ``window_size + 1``
-            points; ``None`` while the buffer is still filling.
+            Anomaly score (float) once the buffer contains ``window_size +
+            stride`` points, then every ``stride`` points; ``None`` otherwise.
 
         Raises:
             ValueError: If ``value`` has more than one dimension, if it
@@ -112,16 +116,19 @@ class StreamingScorer:
                 )
 
         self._buffer.append(arr)
+        self._points_seen += 1
 
-        if len(self._buffer) < self._window_size + 1:
+        if len(self._buffer) < self._window_size + self._stride:
+            return None
+        if (self._points_seen - self._window_size - self._stride) % self._stride != 0:
             return None
 
-        # Build the two consecutive windows from the buffer
-        buf = np.stack(list(self._buffer))  # (window_size + 1, C)
+        # Build the two windows at consecutive configured window starts.
+        buf = np.stack(list(self._buffer))  # (window_size + stride, C)
         # Flatten each window: (window_size * C,)
         w = self._window_size
         left_raw = buf[:w].ravel()
-        right_raw = buf[1:].ravel()
+        right_raw = buf[self._stride : self._stride + w].ravel()
 
         # Normalize using the pipeline's norm config (window-level z-score/minmax)
         left_norm = self._normalize_window(left_raw)
@@ -175,15 +182,16 @@ class StreamingScorer:
 
     @property
     def buffer_fullness(self) -> int:
-        """Current number of buffered data points (max = window_size + 1)."""
+        """Current number of buffered data points (max = window_size + stride)."""
         return len(self._buffer)
 
     @property
     def is_ready(self) -> bool:
-        """True once the buffer is full and scores can be produced."""
-        return len(self._buffer) == self._window_size + 1
+        """True once the buffer contains enough points for strided scoring."""
+        return len(self._buffer) == self._window_size + self._stride
 
     def reset(self) -> None:
         """Clear the internal buffer and transition state."""
         self._buffer.clear()
+        self._points_seen = 0
         self._prev_label = None
