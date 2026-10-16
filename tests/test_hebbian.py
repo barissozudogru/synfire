@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from synfire.core.config import HebbianConfig
 from synfire.layers.hebbian import (
@@ -120,6 +121,14 @@ class TestKmeansPlusPlusEdgeCases:
 
 
 class TestTrainHebbian:
+    @pytest.mark.parametrize("batch_size", [0, -1])
+    def test_non_positive_batch_size_raises(self, rng, batch_size):
+        data = rng.standard_normal((10, 2))
+        state = init_hebbian(data, HebbianConfig(n_prototypes=2))
+
+        with pytest.raises(ValueError, match="batch_size must be >= 1"):
+            train_hebbian(state, data, batch_size=batch_size)
+
     def test_prototypes_converge_to_clusters(self, rng):
         data, true_centers = _make_clustered_data(rng)
         cfg = HebbianConfig(
