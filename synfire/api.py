@@ -194,6 +194,8 @@ class SynfirePipeline:
             Index into the original series of the first sample of the window
             the score describes.
         """
+        if score_index < 0:
+            raise ValueError(f"score_index must be >= 0, got {score_index}")
         w = self.config.window
         return int(score_index) * w.stride + w.stride
 
