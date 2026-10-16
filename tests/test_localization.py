@@ -8,6 +8,11 @@ import pytest
 from synfire.localization import localize_anomalies
 
 
+def test_empty_scores_rejected():
+    with pytest.raises(ValueError, match="scores must be non-empty for percentile mode"):
+        localize_anomalies(np.array([]), percentile=95)
+
+
 class TestLocalizeAnomaliesFixedThreshold:
     """Tests using a fixed numeric threshold."""
 

@@ -65,10 +65,11 @@ def localize_anomalies(
     scores = np.asarray(scores, dtype=np.float64)
     if scores.ndim != 1:
         raise ValueError(f"scores must be 1D, got ndim={scores.ndim}")
-
     if percentile is not None:
         if not (0.0 <= percentile <= 100.0):
             raise ValueError(f"percentile must be in [0, 100], got {percentile}")
+        if scores.size == 0:
+            raise ValueError("scores must be non-empty for percentile mode")
         threshold = float(np.percentile(scores, percentile))
     else:
         threshold = float(threshold)  # type: ignore[arg-type]
