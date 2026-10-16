@@ -79,6 +79,8 @@ class MultiResolutionPipeline:
                     f"weights length {len(weights)} must match "
                     f"window_sizes length {len(self.window_sizes)}"
                 )
+            if any(w < 0 for w in weights):
+                raise ValueError("weights must be non-negative")
             total = sum(weights)
             if total <= 0:
                 raise ValueError("weights must sum to a positive value")

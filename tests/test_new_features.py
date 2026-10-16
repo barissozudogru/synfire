@@ -792,6 +792,10 @@ class TestMultiResolutionPipeline:
         with pytest.raises(ValueError, match="weights length"):
             MultiResolutionPipeline(window_sizes=[8, 16, 32], weights=[0.5, 0.5])
 
+    def test_negative_weights_rejected(self):
+        with pytest.raises(ValueError, match="weights must be non-negative"):
+            MultiResolutionPipeline(window_sizes=[8, 16], weights=[-1.0, 2.0])
+
     def test_unfitted_raises_on_predict(self, sine_series):
         mr = MultiResolutionPipeline(window_sizes=[8, 16])
         with pytest.raises(RuntimeError, match="not fitted"):
