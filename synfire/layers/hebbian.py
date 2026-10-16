@@ -188,6 +188,9 @@ def train_hebbian(
     Returns:
         Trained state.
     """
+    if batch_size < 1:
+        raise ValueError(f"batch_size must be >= 1, got {batch_size}")
+
     rng = np.random.default_rng(state.config.seed)
     n = len(data)
 
