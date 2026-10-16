@@ -90,6 +90,13 @@ class TestRandomPairs:
 
 
 class TestRandomPairsEdgeCases:
+    def test_zero_min_gap_still_uses_other_windows(self, rng):
+        windows = np.arange(12, dtype=np.float64).reshape(4, 3)
+
+        left, right = make_random_pairs(windows, rng, min_gap=0)
+
+        assert not np.any(np.all(left == right, axis=1))
+
     def test_negative_min_gap_raises(self, rng):
         windows = np.arange(12, dtype=np.float64).reshape(4, 3)
 

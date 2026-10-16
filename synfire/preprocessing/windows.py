@@ -71,7 +71,13 @@ def make_random_pairs(
     if n <= 1:
         return windows, windows.copy()
 
-    if n <= min_gap:
+    if min_gap == 0:
+        # Negative pairs still need to use a different window. A zero gap
+        # means no minimum separation, not permission to pair a window with
+        # itself.
+        offsets = rng.integers(1, n, size=n)
+        right_indices = (np.arange(n) + offsets) % n
+    elif n <= min_gap:
         # Fallback: not enough windows for the gap constraint, pair with any other
         offsets = rng.integers(1, n, size=n)
         right_indices = (np.arange(n) + offsets) % n
