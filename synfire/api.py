@@ -37,8 +37,12 @@ def _validate_series(series: NDArray, window_size: int, method: str) -> NDArray:
         arr = np.asarray(series)
     except Exception as e:
         raise ValueError(f"{method}: input could not be converted to numpy array: {e}") from e
-    if not np.issubdtype(arr.dtype, np.number):
-        raise ValueError(f"{method}: series must have numeric dtype, got dtype={arr.dtype}")
+    if not np.issubdtype(arr.dtype, np.number) or np.issubdtype(
+        arr.dtype, np.complexfloating
+    ):
+        raise ValueError(
+            f"{method}: series must have a real numeric dtype, got dtype={arr.dtype}"
+        )
     if arr.ndim not in (1, 2):
         raise ValueError(f"{method}: series must be 1D or 2D, got ndim={arr.ndim}")
     if arr.size == 0:
