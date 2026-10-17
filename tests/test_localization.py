@@ -194,6 +194,13 @@ class TestEdgeCases:
         with pytest.raises(ValueError, match="1D"):
             localize_anomalies(scores, threshold=0.5)
 
+    @pytest.mark.parametrize("invalid_score", [np.nan, np.inf, -np.inf])
+    def test_non_finite_scores_raise(self, invalid_score):
+        scores = np.array([0.1, invalid_score, 0.9], dtype=np.float64)
+
+        with pytest.raises(ValueError, match="finite"):
+            localize_anomalies(scores, threshold=0.5)
+
     def test_list_input_accepted(self):
         scores = [0.0, 1.0, 1.0, 0.0]
         segments = localize_anomalies(scores, threshold=0.5)
