@@ -89,6 +89,13 @@ class TestLabelScoreAlignment:
 
 
 class TestMultiSeedEvaluation:
+    @pytest.mark.parametrize("n_seeds", [0, -1])
+    def test_non_positive_seed_count_rejected(self, n_seeds):
+        with pytest.raises(ValueError, match="n_seeds must be >= 1"):
+            evaluate_multi_seed(
+                np.arange(30.0), np.arange(30.0), np.zeros(0), n_seeds=n_seeds
+            )
+
     @pytest.fixture
     def small_config(self):
         return SynfireConfig(

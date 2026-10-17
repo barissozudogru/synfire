@@ -129,6 +129,9 @@ def evaluate_multi_seed(
     if config is None:
         config = SynfireConfig()
 
+    if n_seeds < 1:
+        raise ValueError(f"n_seeds must be >= 1, got {n_seeds}")
+
     seeds = list(range(base_seed, base_seed + n_seeds))
     auc_scores = []
 
