@@ -58,6 +58,12 @@ class TestMannWhitneyAUC:
         with pytest.raises(ValueError, match="same length"):
             mann_whitney_auc(scores, labels)
 
+    def test_distinct_nearly_equal_scores_are_not_tied(self):
+        scores = np.array([1.0, 1.0 + 5e-13])
+        labels = np.array([0, 1])
+
+        assert mann_whitney_auc(scores, labels) == 1.0
+
 
 class TestLabelScoreAlignment:
     def test_label_shorter_than_scores_aligns_correctly(self):
