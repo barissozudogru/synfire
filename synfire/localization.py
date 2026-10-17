@@ -76,6 +76,9 @@ def localize_anomalies(
     else:
         threshold = float(threshold)  # type: ignore[arg-type]
 
+    if not np.isfinite(threshold):
+        raise ValueError(f"threshold must be finite, got {threshold}")
+
     if min_duration < 1:
         raise ValueError(f"min_duration must be >= 1, got {min_duration}")
     if merge_gap < 0:
