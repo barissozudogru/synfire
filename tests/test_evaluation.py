@@ -44,6 +44,15 @@ class TestMannWhitneyAUC:
         with pytest.raises(ValueError, match="finite"):
             mann_whitney_auc(scores, labels)
 
+    @pytest.mark.parametrize(
+        "scores", [np.array([1.0 + 2.0j, 2.0 + 1.0j]), np.array(["low", "high"])]
+    )
+    def test_non_real_numeric_scores_raise_value_error(self, scores):
+        labels = np.array([0, 1])
+
+        with pytest.raises(ValueError, match="real numeric"):
+            mann_whitney_auc(scores, labels)
+
     def test_non_binary_labels_raise_value_error(self):
         scores = np.array([2.0, 1.0, 0.0])
         labels = np.array([1, 2, 0])

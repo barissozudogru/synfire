@@ -34,6 +34,11 @@ def mann_whitney_auc(scores: NDArray, labels: NDArray) -> float:
         raise ValueError(
             f"scores and labels must have the same length, got {len(scores)} and {len(labels)}"
         )
+    if (
+        np.issubdtype(scores.dtype, np.complexfloating)
+        or not np.issubdtype(scores.dtype, np.number)
+    ):
+        raise ValueError("scores must contain real numeric values")
     if not np.isfinite(scores).all():
         raise ValueError("scores must contain only finite values")
     if (
