@@ -88,12 +88,14 @@ def localize_anomalies(
     flagged = scores >= threshold
     segments = _find_runs(flagged)
 
+    # Apply the duration requirement to actual contiguous flagged runs before
+    # merging across below-threshold gaps. Otherwise multiple short runs could
+    # combine into a segment that never met the minimum duration itself.
+    segments = [s for s in segments if len(s) >= min_duration]
+
     # Merge close segments
     if merge_gap > 0 and len(segments) > 1:
         segments = _merge_segments(segments, merge_gap)
-
-    # Filter by minimum duration
-    segments = [s for s in segments if len(s) >= min_duration]
 
     # Attach score statistics
     result = []

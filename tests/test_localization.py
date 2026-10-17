@@ -162,6 +162,14 @@ class TestMergeGap:
         segments = localize_anomalies(scores, threshold=0.5, merge_gap=2)
         assert len(segments) == 2
 
+    def test_min_duration_applies_before_merging_runs(self):
+        # Two short runs must not satisfy min_duration merely by being merged.
+        scores = np.array([0.0, 1.0, 0.0, 1.0, 0.0], dtype=np.float64)
+        segments = localize_anomalies(
+            scores, threshold=0.5, min_duration=2, merge_gap=1
+        )
+        assert segments == []
+
     def test_merged_segment_peak_from_underlying_scores(self):
         scores = np.array([0.0, 1.0, 0.0, 2.0, 0.0], dtype=np.float64)
         segments = localize_anomalies(scores, threshold=0.5, merge_gap=1)
