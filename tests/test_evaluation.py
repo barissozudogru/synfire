@@ -37,6 +37,13 @@ class TestMannWhitneyAUC:
         labels = np.array([1, 1, 1])
         assert mann_whitney_auc(scores, labels) == 0.5
 
+    def test_non_finite_scores_raise_value_error(self):
+        scores = np.array([np.nan, 1.0, 2.0])
+        labels = np.array([1, 0, 0])
+
+        with pytest.raises(ValueError, match="finite"):
+            mann_whitney_auc(scores, labels)
+
     def test_mismatched_lengths_raise_value_error(self):
         scores = np.array([0.1, 0.2])
         labels = np.array([1, 0, 1])
