@@ -34,6 +34,8 @@ def mann_whitney_auc(scores: NDArray, labels: NDArray) -> float:
         raise ValueError(
             f"scores and labels must have the same length, got {len(scores)} and {len(labels)}"
         )
+    if not np.isfinite(scores).all():
+        raise ValueError("scores must contain only finite values")
 
     labels_bool = labels.astype(bool)
     n_pos = int(labels_bool.sum())
