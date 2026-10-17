@@ -99,6 +99,9 @@ class StreamingScorer:
 
         arr = orig_arr.ravel()
 
+        if arr.size == 0:
+            raise ValueError("score_point expects a scalar or non-empty 1-D array")
+
         # A single NaN or Inf would silently turn every score built from the
         # buffer into NaN until it leaves again, so reject it up front like
         # the batch API does.

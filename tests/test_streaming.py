@@ -282,6 +282,12 @@ class TestScorePointShapeValidation:
         with pytest.raises(ValueError, match="expects a scalar or 1-D array"):
             scorer.score_point(np.array([[1.0, 2.0], [3.0, 4.0]]))
 
+    def test_empty_vector_rejected(self, fitted_pipeline):
+        """A zero-channel point must be rejected before it reaches model scoring."""
+        scorer = StreamingScorer(fitted_pipeline)
+        with pytest.raises(ValueError, match="non-empty 1-D array"):
+            scorer.score_point(np.array([]))
+
 
 class TestNonFiniteInputRejected:
     """Non-finite values must raise, mirroring the batch API's validation."""
