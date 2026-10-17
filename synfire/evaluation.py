@@ -36,6 +36,16 @@ def mann_whitney_auc(scores: NDArray, labels: NDArray) -> float:
         )
     if not np.isfinite(scores).all():
         raise ValueError("scores must contain only finite values")
+    if (
+        np.issubdtype(labels.dtype, np.complexfloating)
+        or not (
+            np.issubdtype(labels.dtype, np.bool_)
+            or np.issubdtype(labels.dtype, np.number)
+        )
+        or not np.isfinite(labels).all()
+        or not np.isin(labels, (0, 1)).all()
+    ):
+        raise ValueError("labels must contain only binary values (0 or 1)")
 
     labels_bool = labels.astype(bool)
     n_pos = int(labels_bool.sum())
