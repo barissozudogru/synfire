@@ -318,6 +318,12 @@ class TestInputValidation:
         with pytest.raises(ValueError, match="numeric dtype"):
             pipeline.fit(series)
 
+    def test_complex_series_rejected(self):
+        pipeline = SynfirePipeline()
+        series = np.array([1.0 + 2.0j] * 100)
+        with pytest.raises(ValueError, match="real numeric dtype"):
+            pipeline.fit(series)
+
     def test_too_few_pairs_rejected(self):
         # Length 29 with window=20, stride=1 yields 10 windows and 9 pairs, which is < 10.
         pipeline = SynfirePipeline(SynfireConfig(window=WindowConfig(window_size=20, stride=1)))
