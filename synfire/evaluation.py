@@ -24,6 +24,17 @@ def mann_whitney_auc(scores: NDArray, labels: NDArray) -> float:
     Returns:
         AUC-ROC score in [0, 1].
     """
+    scores = np.asarray(scores)
+    labels = np.asarray(labels)
+    if scores.ndim != 1 or labels.ndim != 1:
+        raise ValueError(
+            f"scores and labels must be 1D, got {scores.ndim}D and {labels.ndim}D"
+        )
+    if len(scores) != len(labels):
+        raise ValueError(
+            f"scores and labels must have the same length, got {len(scores)} and {len(labels)}"
+        )
+
     labels_bool = labels.astype(bool)
     n_pos = int(labels_bool.sum())
     n_neg = int((~labels_bool).sum())
