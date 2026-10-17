@@ -37,6 +37,13 @@ class TestMannWhitneyAUC:
         labels = np.array([1, 1, 1])
         assert mann_whitney_auc(scores, labels) == 0.5
 
+    def test_mismatched_lengths_raise_value_error(self):
+        scores = np.array([0.1, 0.2])
+        labels = np.array([1, 0, 1])
+
+        with pytest.raises(ValueError, match="same length"):
+            mann_whitney_auc(scores, labels)
+
 
 class TestLabelScoreAlignment:
     def test_label_shorter_than_scores_aligns_correctly(self):
