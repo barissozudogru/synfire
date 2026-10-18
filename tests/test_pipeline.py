@@ -344,6 +344,19 @@ class TestConfigValidation:
         with pytest.raises(ValueError, match="lr must be > 0"):
             FFStackConfig(lr=-0.01)
 
+    @pytest.mark.parametrize(
+        ("field", "message"),
+        [
+            ("early_stopping_min_delta", "early_stopping_min_delta must be finite and >= 0"),
+            ("grad_clip_norm", "grad_clip_norm must be finite and >= 0"),
+            ("weight_decay", "weight_decay must be finite and >= 0"),
+        ],
+    )
+    @pytest.mark.parametrize("value", [np.nan, np.inf, -np.inf])
+    def test_non_finite_stack_training_parameters_rejected(self, field, message, value):
+        with pytest.raises(ValueError, match=message):
+            FFStackConfig(**{field: value})
+
     @pytest.mark.parametrize("threshold", [np.nan, np.inf, -np.inf])
     @pytest.mark.parametrize("config_type", [FFLayerConfig, FFStackConfig])
     def test_non_finite_threshold_rejected(self, threshold, config_type):
