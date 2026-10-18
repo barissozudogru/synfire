@@ -67,8 +67,8 @@ class FFLayerConfig:
             raise ValueError(f"input_dim must be >= 1, got {self.input_dim}")
         if self.hidden_dim < 1:
             raise ValueError(f"hidden_dim must be >= 1, got {self.hidden_dim}")
-        if self.lr <= 0:
-            raise ValueError(f"lr must be > 0, got {self.lr}")
+        if not math.isfinite(self.lr) or self.lr <= 0:
+            raise ValueError(f"lr must be finite and > 0, got {self.lr}")
         if self.threshold <= 0:
             raise ValueError(f"threshold must be > 0, got {self.threshold}")
         if self.epochs < 1:
