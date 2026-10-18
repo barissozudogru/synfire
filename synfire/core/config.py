@@ -184,8 +184,8 @@ class HebbianConfig:
     def __post_init__(self) -> None:
         if self.n_prototypes < 1:
             raise ValueError(f"n_prototypes must be >= 1, got {self.n_prototypes}")
-        if self.lr <= 0:
-            raise ValueError(f"lr must be > 0, got {self.lr}")
+        if not math.isfinite(self.lr) or self.lr <= 0:
+            raise ValueError(f"lr must be finite and > 0, got {self.lr}")
         if self.inhibition_strength < 0:
             raise ValueError(
                 f"inhibition_strength must be >= 0, got {self.inhibition_strength}"

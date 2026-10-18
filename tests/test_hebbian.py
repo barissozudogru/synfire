@@ -22,6 +22,11 @@ def _make_clustered_data(rng, n_per_cluster=100):
 
 
 class TestHebbianInit:
+    @pytest.mark.parametrize("lr", [np.nan, np.inf, -np.inf])
+    def test_non_finite_learning_rate_raises(self, lr):
+        with pytest.raises(ValueError, match="lr must be finite and > 0"):
+            HebbianConfig(lr=lr)
+
     def test_prototype_count(self, rng):
         data = rng.standard_normal((100, 16))
         cfg = HebbianConfig(n_prototypes=5)
