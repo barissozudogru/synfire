@@ -22,6 +22,9 @@ def sliding_windows(series: NDArray, config: WindowConfig | None = None) -> NDAr
     if config is None:
         config = WindowConfig()
 
+    if series.ndim not in (1, 2):
+        raise ValueError(f"series must be 1D or 2D, got ndim={series.ndim}")
+
     if series.ndim == 1:
         series = series[:, np.newaxis]
 

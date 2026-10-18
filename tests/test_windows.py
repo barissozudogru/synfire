@@ -39,6 +39,11 @@ class TestSlidingWindows:
         with pytest.raises(ValueError, match="too short"):
             sliding_windows(series, cfg)
 
+    @pytest.mark.parametrize("series", [np.array(1.0), np.zeros((2, 3, 4))])
+    def test_invalid_dimensions_raise_clear_error(self, series):
+        with pytest.raises(ValueError, match=r"series must be 1D or 2D"):
+            sliding_windows(series, WindowConfig(window_size=1))
+
     def test_default_config(self, sine_series):
         default_ws = WindowConfig().window_size
         windows = sliding_windows(sine_series)
