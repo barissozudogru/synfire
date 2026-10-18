@@ -27,6 +27,11 @@ class TestHebbianInit:
         with pytest.raises(ValueError, match="lr must be finite and > 0"):
             HebbianConfig(lr=lr)
 
+    @pytest.mark.parametrize("inhibition_strength", [np.nan, np.inf, -np.inf])
+    def test_non_finite_inhibition_strength_raises(self, inhibition_strength):
+        with pytest.raises(ValueError, match="inhibition_strength must be finite and >= 0"):
+            HebbianConfig(inhibition_strength=inhibition_strength)
+
     def test_prototype_count(self, rng):
         data = rng.standard_normal((100, 16))
         cfg = HebbianConfig(n_prototypes=5)

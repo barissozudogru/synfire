@@ -195,9 +195,10 @@ class HebbianConfig:
             raise ValueError(f"n_prototypes must be >= 1, got {self.n_prototypes}")
         if not math.isfinite(self.lr) or self.lr <= 0:
             raise ValueError(f"lr must be finite and > 0, got {self.lr}")
-        if self.inhibition_strength < 0:
+        if not math.isfinite(self.inhibition_strength) or self.inhibition_strength < 0:
             raise ValueError(
-                f"inhibition_strength must be >= 0, got {self.inhibition_strength}"
+                "inhibition_strength must be finite and >= 0, "
+                f"got {self.inhibition_strength}"
             )
         if self.epochs < 1:
             raise ValueError(f"epochs must be >= 1, got {self.epochs}")
