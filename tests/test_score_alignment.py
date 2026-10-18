@@ -67,3 +67,8 @@ def test_naive_indexing_is_offset(fitted):
 def test_negative_score_index_is_rejected(fitted):
     with pytest.raises(ValueError, match="score_index must be >= 0"):
         fitted.score_index_to_sample(-1)
+
+
+def test_fractional_score_index_is_rejected(fitted):
+    with pytest.raises(ValueError, match="score_index must be an integer"):
+        fitted.score_index_to_sample(1.5)
