@@ -796,6 +796,11 @@ class TestMultiResolutionPipeline:
         with pytest.raises(ValueError, match="weights must be non-negative"):
             MultiResolutionPipeline(window_sizes=[8, 16], weights=[-1.0, 2.0])
 
+    @pytest.mark.parametrize("weight", [np.nan, np.inf, -np.inf])
+    def test_non_finite_weights_rejected(self, weight):
+        with pytest.raises(ValueError, match="weights must be finite"):
+            MultiResolutionPipeline(window_sizes=[8, 16], weights=[1.0, weight])
+
     def test_unfitted_raises_on_predict(self, sine_series):
         mr = MultiResolutionPipeline(window_sizes=[8, 16])
         with pytest.raises(RuntimeError, match="not fitted"):
