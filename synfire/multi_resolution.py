@@ -79,6 +79,8 @@ class MultiResolutionPipeline:
                     f"weights length {len(weights)} must match "
                     f"window_sizes length {len(self.window_sizes)}"
                 )
+            if not all(np.isfinite(weight) for weight in weights):
+                raise ValueError("weights must be finite")
             if any(w < 0 for w in weights):
                 raise ValueError("weights must be non-negative")
             total = sum(weights)
