@@ -358,6 +358,11 @@ class TestConfigValidation:
         with pytest.raises(ValueError, match="weight_goodness must be >= 0"):
             AnomalyConfig(weight_goodness=-1.0)
 
+    @pytest.mark.parametrize("weight", [np.nan, np.inf, -np.inf])
+    def test_non_finite_weight_rejected(self, weight):
+        with pytest.raises(ValueError, match="weight_goodness must be finite and >= 0"):
+            AnomalyConfig(weight_goodness=weight)
+
 
 class TestAnomalyScoringMemory:
     """Test that anomaly scoring avoids naive broadcast tensor allocations."""

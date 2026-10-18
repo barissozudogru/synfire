@@ -208,12 +208,15 @@ class AnomalyConfig:
     ensemble_goodness: bool = False
 
     def __post_init__(self) -> None:
-        if self.weight_goodness < 0:
-            raise ValueError(f"weight_goodness must be >= 0, got {self.weight_goodness}")
-        if self.weight_distance < 0:
-            raise ValueError(f"weight_distance must be >= 0, got {self.weight_distance}")
-        if self.weight_transition < 0:
-            raise ValueError(f"weight_transition must be >= 0, got {self.weight_transition}")
+        for name, value in (
+            ("weight_goodness", self.weight_goodness),
+            ("weight_distance", self.weight_distance),
+            ("weight_transition", self.weight_transition),
+        ):
+            if not math.isfinite(value):
+                raise ValueError(f"{name} must be finite and >= 0, got {value}")
+            if value < 0:
+                raise ValueError(f"{name} must be >= 0, got {value}")
 
 
 @dataclass(frozen=True)
