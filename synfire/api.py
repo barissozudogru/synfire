@@ -198,6 +198,10 @@ class SynfirePipeline:
             Index into the original series of the first sample of the window
             the score describes.
         """
+        if isinstance(score_index, bool | np.bool_) or not isinstance(
+            score_index, int | np.integer
+        ):
+            raise ValueError(f"score_index must be an integer, got {score_index!r}")
         if score_index < 0:
             raise ValueError(f"score_index must be >= 0, got {score_index}")
         w = self.config.window
