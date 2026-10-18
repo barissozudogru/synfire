@@ -151,6 +151,11 @@ class FFStackConfig:
             raise ValueError(
                 f"early_stopping_patience must be >= 0, got {self.early_stopping_patience}"
             )
+        if not math.isfinite(self.early_stopping_min_delta) or self.early_stopping_min_delta < 0:
+            raise ValueError(
+                "early_stopping_min_delta must be finite and >= 0, "
+                f"got {self.early_stopping_min_delta}"
+            )
         if self.lr_schedule not in ("none", "constant", "cosine", "warmup_cosine"):
             raise ValueError(
                 f"lr_schedule must be 'none', 'constant', 'cosine', or 'warmup_cosine', "
@@ -160,12 +165,16 @@ class FFStackConfig:
             raise ValueError(
                 f"lr_warmup_fraction must be in [0, 1], got {self.lr_warmup_fraction}"
             )
-        if self.grad_clip_norm < 0:
-            raise ValueError(f"grad_clip_norm must be >= 0, got {self.grad_clip_norm}")
+        if not math.isfinite(self.grad_clip_norm) or self.grad_clip_norm < 0:
+            raise ValueError(
+                f"grad_clip_norm must be finite and >= 0, got {self.grad_clip_norm}"
+            )
         if self.optimizer not in ("sgd", "adam"):
             raise ValueError(f"optimizer must be 'sgd' or 'adam', got {self.optimizer!r}")
-        if self.weight_decay < 0:
-            raise ValueError(f"weight_decay must be >= 0, got {self.weight_decay}")
+        if not math.isfinite(self.weight_decay) or self.weight_decay < 0:
+            raise ValueError(
+                f"weight_decay must be finite and >= 0, got {self.weight_decay}"
+            )
         if self.negative_strategy not in ("random", "hard", "curriculum"):
             raise ValueError(
                 f"negative_strategy must be 'random', 'hard', or 'curriculum', "
