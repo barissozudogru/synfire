@@ -19,6 +19,11 @@ from synfire.preprocessing.windows import (
 
 
 class TestFFLayerInit:
+    @pytest.mark.parametrize("lr", [np.nan, np.inf, -np.inf])
+    def test_non_finite_learning_rate_rejected(self, lr):
+        with pytest.raises(ValueError, match="lr must be finite and > 0"):
+            FFLayerConfig(lr=lr)
+
     def test_shapes(self):
         cfg = FFLayerConfig(input_dim=20, hidden_dim=32)
         state = init_layer(cfg)
