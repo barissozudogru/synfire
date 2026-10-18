@@ -156,6 +156,11 @@ class TestNormalization:
         with pytest.raises(ValueError, match="method must be"):
             NormConfig(method="invalid")
 
+    @pytest.mark.parametrize("eps", [np.nan, np.inf])
+    def test_non_finite_eps_raises(self, eps):
+        with pytest.raises(ValueError, match="finite"):
+            NormConfig(eps=eps)
+
     @pytest.mark.parametrize("method", ["zscore", "minmax"])
     @pytest.mark.parametrize("dtype", [np.float16, np.float32, np.float64, np.int32, np.int64])
     def test_constant_window_with_zero_eps_returns_zeros(self, method, dtype):
