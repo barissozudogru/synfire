@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from synfire.core.config import FFStackConfig, WindowConfig
 from synfire.layers.ff_stack import (
@@ -15,6 +16,11 @@ from synfire.preprocessing.windows import (
 
 
 class TestFFStackInit:
+    @pytest.mark.parametrize("lr", [np.nan, np.inf, -np.inf])
+    def test_non_finite_learning_rate_rejected(self, lr):
+        with pytest.raises(ValueError, match="lr must be finite and > 0"):
+            FFStackConfig(lr=lr)
+
     def test_layer_count(self):
         cfg = FFStackConfig(layer_dims=(64, 32, 16))
         state = init_stack(40, cfg)

@@ -137,6 +137,8 @@ class FFStackConfig:
             raise ValueError("layer_dims must be non-empty")
         if any(d < 1 for d in self.layer_dims):
             raise ValueError(f"all layer_dims must be >= 1, got {self.layer_dims}")
+        if not math.isfinite(self.lr):
+            raise ValueError(f"lr must be finite and > 0, got {self.lr}")
         if self.lr <= 0:
             raise ValueError(f"lr must be > 0, got {self.lr}")
         if self.threshold <= 0:
