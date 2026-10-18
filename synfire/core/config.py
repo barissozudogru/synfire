@@ -69,8 +69,8 @@ class FFLayerConfig:
             raise ValueError(f"hidden_dim must be >= 1, got {self.hidden_dim}")
         if not math.isfinite(self.lr) or self.lr <= 0:
             raise ValueError(f"lr must be finite and > 0, got {self.lr}")
-        if self.threshold <= 0:
-            raise ValueError(f"threshold must be > 0, got {self.threshold}")
+        if not math.isfinite(self.threshold) or self.threshold <= 0:
+            raise ValueError(f"threshold must be finite and > 0, got {self.threshold}")
         if self.epochs < 1:
             raise ValueError(f"epochs must be >= 1, got {self.epochs}")
         if self.batch_size < 0:
@@ -141,8 +141,8 @@ class FFStackConfig:
             raise ValueError(f"lr must be finite and > 0, got {self.lr}")
         if self.lr <= 0:
             raise ValueError(f"lr must be > 0, got {self.lr}")
-        if self.threshold <= 0:
-            raise ValueError(f"threshold must be > 0, got {self.threshold}")
+        if not math.isfinite(self.threshold) or self.threshold <= 0:
+            raise ValueError(f"threshold must be finite and > 0, got {self.threshold}")
         if self.epochs_per_layer < 1:
             raise ValueError(f"epochs_per_layer must be >= 1, got {self.epochs_per_layer}")
         if self.batch_size < 0:
