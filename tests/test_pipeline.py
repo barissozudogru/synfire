@@ -375,6 +375,11 @@ class TestConfigValidation:
         with pytest.raises(ValueError, match="n_prototypes must be >= 1"):
             HebbianConfig(n_prototypes=0)
 
+    @pytest.mark.parametrize("epochs", [1.5, True])
+    def test_fractional_or_boolean_stack_epochs_rejected(self, epochs):
+        with pytest.raises(ValueError, match="epochs_per_layer must be an integer"):
+            FFStackConfig(epochs_per_layer=epochs)
+
     def test_negative_weight_rejected(self):
         with pytest.raises(ValueError, match="weight_goodness must be >= 0"):
             AnomalyConfig(weight_goodness=-1.0)
