@@ -24,6 +24,15 @@ class TestFFLayerInit:
         with pytest.raises(ValueError, match="lr must be finite and > 0"):
             FFLayerConfig(lr=lr)
 
+
+    @pytest.mark.parametrize(
+        ("g_pos", "g_neg"),
+        [(np.empty(0), np.ones(1)), (np.ones(1), np.empty(0))],
+    )
+    def test_empty_batch_raises(self, g_pos, g_neg):
+        with pytest.raises(ValueError, match="must contain at least one sample"):
+            compute_loss(g_pos, g_neg, threshold=2.0)
+
     def test_shapes(self):
         cfg = FFLayerConfig(input_dim=20, hidden_dim=32)
         state = init_layer(cfg)
@@ -178,6 +187,13 @@ class TestGradientCorrectness:
 
 
 class TestTrainLayer:
+    def test_empty_batch_raises(self):
+        cfg = FFLayerConfig(input_dim=2, hidden_dim=2, epochs=1)
+        state = init_layer(cfg)
+
+        with pytest.raises(ValueError, match="must contain at least one sample"):
+            train_layer(state, np.empty((0, 2)), np.empty((0, 2)))
+
     def test_loss_decreases(self, sine_series, rng):
         windows = sliding_windows(sine_series, WindowConfig(window_size=20))
         pos_l, pos_r = make_consecutive_pairs(windows)

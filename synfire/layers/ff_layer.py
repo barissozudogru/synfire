@@ -110,6 +110,9 @@ def compute_loss(
     Returns:
         (scalar_loss, d_loss_d_g_pos, d_loss_d_g_neg) for gradient computation.
     """
+    if len(g_pos) == 0 or len(g_neg) == 0:
+        raise ValueError("g_pos and g_neg must contain at least one sample")
+
     sig_pos = backend.sigmoid(g_pos - threshold)
     sig_neg = backend.sigmoid(threshold - g_neg)
 
@@ -461,6 +464,8 @@ def train_layer(
     warmup_fraction = config.lr_warmup_fraction
     batch_size = config.batch_size
     n = len(x_pos)
+    if n == 0 or len(x_neg) == 0:
+        raise ValueError("x_pos and x_neg must contain at least one sample")
     # batch_size=0 means full batch
     effective_batch = n if batch_size == 0 else min(batch_size, n)
 
