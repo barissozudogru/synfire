@@ -357,6 +357,14 @@ class TestConfigValidation:
         with pytest.raises(ValueError, match=message):
             FFStackConfig(**{field: value})
 
+    @pytest.mark.parametrize("field", [
+        "early_stopping_min_delta", "grad_clip_norm", "weight_decay",
+    ])
+    @pytest.mark.parametrize("value", [np.nan, np.inf, -np.inf])
+    def test_non_finite_layer_training_parameters_rejected(self, field, value):
+        with pytest.raises(ValueError, match=f"{field} must be"):
+            FFLayerConfig(**{field: value})
+
     @pytest.mark.parametrize("threshold", [np.nan, np.inf, -np.inf])
     @pytest.mark.parametrize("config_type", [FFLayerConfig, FFStackConfig])
     def test_non_finite_threshold_rejected(self, threshold, config_type):
