@@ -148,6 +148,12 @@ class FFStackConfig:
             raise ValueError(f"lr must be > 0, got {self.lr}")
         if not math.isfinite(self.threshold) or self.threshold <= 0:
             raise ValueError(f"threshold must be finite and > 0, got {self.threshold}")
+        if isinstance(self.epochs_per_layer, bool) or not isinstance(
+            self.epochs_per_layer, Integral
+        ):
+            raise ValueError(
+                f"epochs_per_layer must be an integer, got {self.epochs_per_layer!r}"
+            )
         if self.epochs_per_layer < 1:
             raise ValueError(f"epochs_per_layer must be >= 1, got {self.epochs_per_layer}")
         if self.batch_size < 0:
