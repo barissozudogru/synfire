@@ -145,6 +145,11 @@ class TestShuffledPairs:
 
 
 class TestNormalization:
+    @pytest.mark.parametrize("windows", [np.arange(4.0), np.array(1.0)])
+    def test_non_2d_windows_raise_clear_error(self, windows):
+        with pytest.raises(ValueError, match=r"windows must be 2D"):
+            normalize_windows(windows)
+
     def test_zscore_shape(self, sine_series):
         windows = sliding_windows(sine_series, WindowConfig(window_size=20))
         normed = normalize_windows(windows)

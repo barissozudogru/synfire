@@ -21,6 +21,9 @@ def normalize_windows(windows: NDArray, config: NormConfig | None = None) -> NDA
     if config is None:
         config = NormConfig()
 
+    if windows.ndim != 2:
+        raise ValueError(f"windows must be 2D, got ndim={windows.ndim}")
+
     if config.method == "zscore":
         mean = np.mean(windows, axis=1, keepdims=True)
         std = np.std(windows, axis=1, keepdims=True)
