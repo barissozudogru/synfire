@@ -5,6 +5,7 @@ from __future__ import annotations
 import dataclasses
 import math
 from dataclasses import dataclass, field
+from numbers import Integral
 from typing import Any, Literal
 
 
@@ -14,6 +15,10 @@ class WindowConfig:
     stride: int = 1
 
     def __post_init__(self) -> None:
+        if isinstance(self.window_size, bool) or not isinstance(self.window_size, Integral):
+            raise ValueError(f"window_size must be an integer, got {self.window_size!r}")
+        if isinstance(self.stride, bool) or not isinstance(self.stride, Integral):
+            raise ValueError(f"stride must be an integer, got {self.stride!r}")
         if self.window_size < 1:
             raise ValueError(f"window_size must be >= 1, got {self.window_size}")
         if self.stride < 1:
