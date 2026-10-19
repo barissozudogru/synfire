@@ -202,6 +202,10 @@ class HebbianConfig:
     seed: int = 42
 
     def __post_init__(self) -> None:
+        if isinstance(self.n_prototypes, bool) or not isinstance(self.n_prototypes, Integral):
+            raise ValueError(
+                f"n_prototypes must be an integer, got {self.n_prototypes!r}"
+            )
         if self.n_prototypes < 1:
             raise ValueError(f"n_prototypes must be >= 1, got {self.n_prototypes}")
         if not math.isfinite(self.lr) or self.lr <= 0:
