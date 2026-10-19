@@ -336,6 +336,10 @@ class TestInputValidation:
 class TestConfigValidation:
     """Test that invalid config values are rejected at construction time."""
 
+    def test_fractional_n_prototypes_rejected(self):
+        with pytest.raises(ValueError, match="n_prototypes must be an integer"):
+            HebbianConfig(n_prototypes=2.5)
+
     def test_zero_window_size_rejected(self):
         with pytest.raises(ValueError, match="window_size must be >= 1"):
             WindowConfig(window_size=0)
