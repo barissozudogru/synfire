@@ -72,7 +72,8 @@ class MultiResolutionPipeline:
         self.window_sizes = list(window_sizes)
         if not self.window_sizes:
             raise ValueError("window_sizes must be non-empty")
-
+        for window_size in self.window_sizes:
+            WindowConfig(window_size=window_size)
         if weights is not None:
             if len(weights) != len(self.window_sizes):
                 raise ValueError(
