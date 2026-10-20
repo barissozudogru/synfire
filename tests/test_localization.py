@@ -187,6 +187,11 @@ class TestMergeGap:
         with pytest.raises(ValueError, match="merge_gap must be >= 0"):
             localize_anomalies(scores, threshold=0.5, merge_gap=-1)
 
+    def test_fractional_merge_gap_raises(self):
+        scores = np.ones(10, dtype=np.float64)
+        with pytest.raises(ValueError, match="merge_gap must be an integer"):
+            localize_anomalies(scores, threshold=0.5, merge_gap=1.5)
+
 
 class TestEdgeCases:
     """Edge cases: empty input, single element, 2D input."""
