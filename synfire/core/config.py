@@ -68,6 +68,10 @@ class FFLayerConfig:
     negative_strategy: Literal["random", "hard", "curriculum"] = "random"
 
     def __post_init__(self) -> None:
+        if isinstance(self.input_dim, bool) or not isinstance(self.input_dim, Integral):
+            raise ValueError(f"input_dim must be an integer, got {self.input_dim!r}")
+        if isinstance(self.hidden_dim, bool) or not isinstance(self.hidden_dim, Integral):
+            raise ValueError(f"hidden_dim must be an integer, got {self.hidden_dim!r}")
         if self.input_dim < 1:
             raise ValueError(f"input_dim must be >= 1, got {self.input_dim}")
         if self.hidden_dim < 1:

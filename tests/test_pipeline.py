@@ -388,6 +388,11 @@ class TestConfigValidation:
         with pytest.raises(ValueError, match="epochs_per_layer must be an integer"):
             FFStackConfig(epochs_per_layer=epochs)
 
+    @pytest.mark.parametrize("field", ["input_dim", "hidden_dim"])
+    def test_non_integer_layer_dimensions_rejected(self, field):
+        with pytest.raises(ValueError, match=rf"{field} must be an integer"):
+            FFLayerConfig(**{field: 2.5})
+
     def test_negative_weight_rejected(self):
         with pytest.raises(ValueError, match="weight_goodness must be >= 0"):
             AnomalyConfig(weight_goodness=-1.0)
