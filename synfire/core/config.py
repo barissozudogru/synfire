@@ -140,6 +140,10 @@ class FFStackConfig:
     def __post_init__(self) -> None:
         if not self.layer_dims:
             raise ValueError("layer_dims must be non-empty")
+        if any(isinstance(d, bool) or not isinstance(d, Integral) for d in self.layer_dims):
+            raise ValueError(
+                f"layer_dims must contain only integers, got {self.layer_dims}"
+            )
         if any(d < 1 for d in self.layer_dims):
             raise ValueError(f"all layer_dims must be >= 1, got {self.layer_dims}")
         if not math.isfinite(self.lr):

@@ -340,6 +340,10 @@ class TestConfigValidation:
         with pytest.raises(ValueError, match="n_prototypes must be an integer"):
             HebbianConfig(n_prototypes=2.5)
 
+    def test_fractional_layer_dimension_rejected(self):
+        with pytest.raises(ValueError, match="layer_dims must contain only integers"):
+            FFStackConfig(layer_dims=(16, 2.5))
+
     def test_zero_window_size_rejected(self):
         with pytest.raises(ValueError, match="window_size must be >= 1"):
             WindowConfig(window_size=0)
