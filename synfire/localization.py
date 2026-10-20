@@ -84,6 +84,8 @@ def localize_anomalies(
         raise ValueError(f"min_duration must be an integer, got {min_duration!r}")
     if min_duration < 1:
         raise ValueError(f"min_duration must be >= 1, got {min_duration}")
+    if isinstance(merge_gap, bool) or not isinstance(merge_gap, Integral):
+        raise ValueError(f"merge_gap must be an integer, got {merge_gap!r}")
     if merge_gap < 0:
         raise ValueError(f"merge_gap must be >= 0, got {merge_gap}")
 
