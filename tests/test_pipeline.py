@@ -393,6 +393,11 @@ class TestConfigValidation:
         with pytest.raises(ValueError, match="epochs_per_layer must be an integer"):
             FFStackConfig(epochs_per_layer=epochs)
 
+    @pytest.mark.parametrize("epochs", [1.5, True])
+    def test_fractional_or_boolean_layer_epochs_rejected(self, epochs):
+        with pytest.raises(ValueError, match="epochs must be an integer"):
+            FFLayerConfig(epochs=epochs)
+
     @pytest.mark.parametrize("field", ["input_dim", "hidden_dim"])
     def test_non_integer_layer_dimensions_rejected(self, field):
         with pytest.raises(ValueError, match=rf"{field} must be an integer"):

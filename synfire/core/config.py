@@ -80,6 +80,8 @@ class FFLayerConfig:
             raise ValueError(f"lr must be finite and > 0, got {self.lr}")
         if not math.isfinite(self.threshold) or self.threshold <= 0:
             raise ValueError(f"threshold must be finite and > 0, got {self.threshold}")
+        if isinstance(self.epochs, bool) or not isinstance(self.epochs, Integral):
+            raise ValueError(f"epochs must be an integer, got {self.epochs!r}")
         if self.epochs < 1:
             raise ValueError(f"epochs must be >= 1, got {self.epochs}")
         if self.batch_size < 0:
