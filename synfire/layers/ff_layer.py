@@ -118,11 +118,10 @@ def compute_loss(
 
     loss = -backend.mean(backend.log(sig_pos)) - backend.mean(backend.log(sig_neg))
 
-    # Gradients: d_loss/d_g_pos = -(1 - sig_pos) / batch_size
-    #            d_loss/d_g_neg = (1 - sig_neg) / batch_size
-    batch_size = len(g_pos)
-    d_g_pos = -(1.0 - sig_pos) / batch_size
-    d_g_neg = (1.0 - sig_neg) / batch_size
+    # Each loss term is averaged over its own batch, so the gradients must use
+    # the corresponding positive and negative batch sizes independently.
+    d_g_pos = -(1.0 - sig_pos) / len(g_pos)
+    d_g_neg = (1.0 - sig_neg) / len(g_neg)
 
     return float(loss), d_g_pos, d_g_neg
 

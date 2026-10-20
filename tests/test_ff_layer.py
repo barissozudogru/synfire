@@ -94,6 +94,18 @@ class TestComputeLoss:
 
         assert loss_good < loss_bad
 
+    def test_gradients_use_each_batch_size(self):
+        g_pos = np.array([3.0])
+        g_neg = np.array([1.0, 1.5, 0.5])
+        threshold = 2.0
+
+        _, d_pos, d_neg = compute_loss(g_pos, g_neg, threshold)
+
+        sig_pos = 1.0 / (1.0 + np.exp(-(g_pos - threshold)))
+        sig_neg = 1.0 / (1.0 + np.exp(-(threshold - g_neg)))
+        np.testing.assert_allclose(d_pos, -(1.0 - sig_pos) / len(g_pos))
+        np.testing.assert_allclose(d_neg, (1.0 - sig_neg) / len(g_neg))
+
 
 class TestTrainStep:
     def test_loss_returned(self, sine_series, rng):
