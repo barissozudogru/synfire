@@ -775,6 +775,11 @@ class TestMultiResolutionPipeline:
         mr = MultiResolutionPipeline(window_sizes=[10, 20])
         assert mr.window_sizes == [10, 20]
 
+    @pytest.mark.parametrize("window_size", [0, -1, 2.5, True])
+    def test_invalid_window_sizes_rejected_at_construction(self, window_size):
+        with pytest.raises(ValueError, match="window_size"):
+            MultiResolutionPipeline(window_sizes=[window_size])
+
     def test_invalid_combination_rejected(self):
         with pytest.raises(ValueError, match="combination must be"):
             MultiResolutionPipeline(combination="median")
