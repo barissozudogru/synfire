@@ -384,6 +384,11 @@ class TestConfigValidation:
             HebbianConfig(n_prototypes=0)
 
     @pytest.mark.parametrize("epochs", [1.5, True])
+    def test_fractional_or_boolean_hebbian_epochs_rejected(self, epochs):
+        with pytest.raises(ValueError, match="epochs must be an integer"):
+            HebbianConfig(epochs=epochs)
+
+    @pytest.mark.parametrize("epochs", [1.5, True])
     def test_fractional_or_boolean_stack_epochs_rejected(self, epochs):
         with pytest.raises(ValueError, match="epochs_per_layer must be an integer"):
             FFStackConfig(epochs_per_layer=epochs)

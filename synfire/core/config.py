@@ -223,6 +223,8 @@ class HebbianConfig:
                 "inhibition_strength must be finite and >= 0, "
                 f"got {self.inhibition_strength}"
             )
+        if isinstance(self.epochs, bool) or not isinstance(self.epochs, Integral):
+            raise ValueError(f"epochs must be an integer, got {self.epochs!r}")
         if self.epochs < 1:
             raise ValueError(f"epochs must be >= 1, got {self.epochs}")
 
