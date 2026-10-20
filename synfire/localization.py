@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from numbers import Integral
 
 import numpy as np
 from numpy.typing import NDArray
@@ -79,6 +80,8 @@ def localize_anomalies(
     if not np.isfinite(threshold):
         raise ValueError(f"threshold must be finite, got {threshold}")
 
+    if isinstance(min_duration, bool) or not isinstance(min_duration, Integral):
+        raise ValueError(f"min_duration must be an integer, got {min_duration!r}")
     if min_duration < 1:
         raise ValueError(f"min_duration must be >= 1, got {min_duration}")
     if merge_gap < 0:

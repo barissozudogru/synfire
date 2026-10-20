@@ -139,6 +139,11 @@ class TestMinDurationFiltering:
         with pytest.raises(ValueError, match="min_duration must be >= 1"):
             localize_anomalies(scores, threshold=0.5, min_duration=0)
 
+    def test_fractional_min_duration_raises(self):
+        scores = np.ones(10, dtype=np.float64)
+        with pytest.raises(ValueError, match="min_duration must be an integer"):
+            localize_anomalies(scores, threshold=0.5, min_duration=1.5)
+
 
 class TestMergeGap:
     """Tests for merge_gap parameter."""
