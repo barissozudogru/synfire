@@ -113,6 +113,13 @@ class TestRandomPairsEdgeCases:
         with pytest.raises(ValueError, match="min_gap must be >= 0"):
             make_random_pairs(windows, rng, min_gap=-1)
 
+    @pytest.mark.parametrize("min_gap", [True, 1.5])
+    def test_non_integer_min_gap_raises(self, rng, min_gap):
+        windows = np.arange(12, dtype=np.float64).reshape(4, 3)
+
+        with pytest.raises(ValueError, match="min_gap must be an integer"):
+            make_random_pairs(windows, rng, min_gap=min_gap)
+
     def test_n_equals_1_returns_copy(self, rng):
         windows = np.array([[1.0, 2.0, 3.0]])
         left, right = make_random_pairs(windows, rng, min_gap=5)
