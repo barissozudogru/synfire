@@ -88,6 +88,13 @@ class FFLayerConfig:
             raise ValueError(f"batch_size must be an integer, got {self.batch_size!r}")
         if self.batch_size < 0:
             raise ValueError(f"batch_size must be >= 0, got {self.batch_size}")
+        if isinstance(self.early_stopping_patience, bool) or not isinstance(
+            self.early_stopping_patience, Integral
+        ):
+            raise ValueError(
+                "early_stopping_patience must be an integer, "
+                f"got {self.early_stopping_patience!r}"
+            )
         if self.early_stopping_patience < 0:
             raise ValueError(
                 f"early_stopping_patience must be >= 0, got {self.early_stopping_patience}"
@@ -172,6 +179,13 @@ class FFStackConfig:
             raise ValueError(f"batch_size must be an integer, got {self.batch_size!r}")
         if self.batch_size < 0:
             raise ValueError(f"batch_size must be >= 0, got {self.batch_size}")
+        if isinstance(self.early_stopping_patience, bool) or not isinstance(
+            self.early_stopping_patience, Integral
+        ):
+            raise ValueError(
+                "early_stopping_patience must be an integer, "
+                f"got {self.early_stopping_patience!r}"
+            )
         if self.early_stopping_patience < 0:
             raise ValueError(
                 f"early_stopping_patience must be >= 0, got {self.early_stopping_patience}"
