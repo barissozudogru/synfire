@@ -348,6 +348,12 @@ class TestConfigValidation:
         with pytest.raises(ValueError, match="window_size must be >= 1"):
             WindowConfig(window_size=0)
 
+    @pytest.mark.parametrize("config_type", [FFLayerConfig, FFStackConfig])
+    @pytest.mark.parametrize("batch_size", [True, 1.5])
+    def test_non_integer_batch_size_rejected(self, config_type, batch_size):
+        with pytest.raises(ValueError, match="batch_size must be an integer"):
+            config_type(batch_size=batch_size)
+
     def test_negative_lr_rejected(self):
         with pytest.raises(ValueError, match="lr must be > 0"):
             FFStackConfig(lr=-0.01)
