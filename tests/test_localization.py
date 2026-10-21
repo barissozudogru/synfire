@@ -106,6 +106,11 @@ class TestLocalizeAnomaliesPercentileThreshold:
         with pytest.raises(ValueError, match="percentile must be in"):
             localize_anomalies(scores, percentile=101.0)
 
+    def test_non_numeric_percentile_raises_value_error(self):
+        scores = np.ones(10, dtype=np.float64)
+        with pytest.raises(ValueError, match="percentile must be a real number"):
+            localize_anomalies(scores, percentile="95")
+
     @pytest.mark.parametrize("threshold", [np.nan, np.inf, -np.inf])
     def test_non_finite_threshold_raises(self, threshold):
         scores = np.array([0.1, 0.9], dtype=np.float64)

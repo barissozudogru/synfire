@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from numbers import Integral
+from numbers import Integral, Real
 
 import numpy as np
 from numpy.typing import NDArray
@@ -69,6 +69,8 @@ def localize_anomalies(
     if not np.isfinite(scores).all():
         raise ValueError("scores must contain only finite values")
     if percentile is not None:
+        if isinstance(percentile, bool) or not isinstance(percentile, Real):
+            raise ValueError(f"percentile must be a real number, got {percentile!r}")
         if not (0.0 <= percentile <= 100.0):
             raise ValueError(f"percentile must be in [0, 100], got {percentile}")
         if scores.size == 0:
