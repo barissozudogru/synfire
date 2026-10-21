@@ -89,11 +89,21 @@ class TestLabelScoreAlignment:
 
 
 class TestMultiSeedEvaluation:
-    @pytest.mark.parametrize("n_seeds", [0, -1])
-    def test_non_positive_seed_count_rejected(self, n_seeds):
-        with pytest.raises(ValueError, match="n_seeds must be >= 1"):
+    @pytest.mark.parametrize(
+        ("n_seeds", "message"),
+        [(True, "n_seeds must be an integer"), (1.5, "n_seeds must be an integer"),
+         (0, "n_seeds must be >= 1"), (-1, "n_seeds must be >= 1")],
+    )
+    def test_invalid_seed_count_rejected(self, n_seeds, message):
+        config = SynfireConfig(
+            window=WindowConfig(window_size=5, stride=1),
+            ff_stack=FFStackConfig(layer_dims=(4,), epochs_per_layer=1),
+            hebbian=HebbianConfig(n_prototypes=2, epochs=1),
+        )
+        with pytest.raises(ValueError, match=message):
             evaluate_multi_seed(
-                np.arange(30.0), np.arange(30.0), np.zeros(0), n_seeds=n_seeds
+                np.arange(30.0), np.arange(30.0), np.zeros(25),
+                config=config, n_seeds=n_seeds,
             )
 
     @pytest.fixture

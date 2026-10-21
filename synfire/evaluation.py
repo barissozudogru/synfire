@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from numbers import Integral
 
 import numpy as np
 from numpy.typing import NDArray
@@ -129,6 +130,8 @@ def evaluate_multi_seed(
     if config is None:
         config = SynfireConfig()
 
+    if isinstance(n_seeds, bool) or not isinstance(n_seeds, Integral):
+        raise ValueError(f"n_seeds must be an integer, got {n_seeds!r}")
     if n_seeds < 1:
         raise ValueError(f"n_seeds must be >= 1, got {n_seeds}")
 
