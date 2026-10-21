@@ -5,7 +5,7 @@ from __future__ import annotations
 import dataclasses
 import math
 from dataclasses import dataclass, field
-from numbers import Integral
+from numbers import Integral, Real
 from typing import Any, Literal
 
 
@@ -33,7 +33,12 @@ class NormConfig:
     def __post_init__(self) -> None:
         if self.method not in ("zscore", "minmax"):
             raise ValueError(f"method must be 'zscore' or 'minmax', got {self.method!r}")
-        if not math.isfinite(self.eps) or self.eps < 0:
+        if (
+            isinstance(self.eps, bool)
+            or not isinstance(self.eps, Real)
+            or not math.isfinite(self.eps)
+            or self.eps < 0
+        ):
             raise ValueError(f"eps must be finite and >= 0, got {self.eps}")
 
 
