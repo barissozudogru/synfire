@@ -354,6 +354,12 @@ class TestConfigValidation:
         with pytest.raises(ValueError, match="batch_size must be an integer"):
             config_type(batch_size=batch_size)
 
+    @pytest.mark.parametrize("config_type", [FFLayerConfig, FFStackConfig])
+    @pytest.mark.parametrize("patience", [True, 1.5])
+    def test_non_integer_early_stopping_patience_rejected(self, config_type, patience):
+        with pytest.raises(ValueError, match="early_stopping_patience must be an integer"):
+            config_type(early_stopping_patience=patience)
+
     def test_negative_lr_rejected(self):
         with pytest.raises(ValueError, match="lr must be > 0"):
             FFStackConfig(lr=-0.01)
