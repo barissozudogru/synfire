@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from numbers import Integral
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -66,6 +68,8 @@ def make_random_pairs(
     Returns:
         Tuple of (left, right) arrays, each of shape (N, D).
     """
+    if isinstance(min_gap, bool) or not isinstance(min_gap, Integral):
+        raise ValueError(f"min_gap must be an integer, got {min_gap!r}")
     if min_gap < 0:
         raise ValueError(f"min_gap must be >= 0, got {min_gap}")
 
