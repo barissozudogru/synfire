@@ -84,6 +84,8 @@ class FFLayerConfig:
             raise ValueError(f"epochs must be an integer, got {self.epochs!r}")
         if self.epochs < 1:
             raise ValueError(f"epochs must be >= 1, got {self.epochs}")
+        if isinstance(self.batch_size, bool) or not isinstance(self.batch_size, Integral):
+            raise ValueError(f"batch_size must be an integer, got {self.batch_size!r}")
         if self.batch_size < 0:
             raise ValueError(f"batch_size must be >= 0, got {self.batch_size}")
         if self.early_stopping_patience < 0:
@@ -166,6 +168,8 @@ class FFStackConfig:
             )
         if self.epochs_per_layer < 1:
             raise ValueError(f"epochs_per_layer must be >= 1, got {self.epochs_per_layer}")
+        if isinstance(self.batch_size, bool) or not isinstance(self.batch_size, Integral):
+            raise ValueError(f"batch_size must be an integer, got {self.batch_size!r}")
         if self.batch_size < 0:
             raise ValueError(f"batch_size must be >= 0, got {self.batch_size}")
         if self.early_stopping_patience < 0:
