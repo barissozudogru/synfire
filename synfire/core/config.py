@@ -114,7 +114,12 @@ class FFLayerConfig:
             raise ValueError(
                 f"early_stopping_patience must be >= 0, got {self.early_stopping_patience}"
             )
-        if not math.isfinite(self.early_stopping_min_delta) or self.early_stopping_min_delta < 0:
+        if (
+            isinstance(self.early_stopping_min_delta, bool)
+            or not isinstance(self.early_stopping_min_delta, Real)
+            or not math.isfinite(self.early_stopping_min_delta)
+            or self.early_stopping_min_delta < 0
+        ):
             raise ValueError(
                 f"early_stopping_min_delta must be >= 0, got {self.early_stopping_min_delta}"
             )
@@ -210,7 +215,12 @@ class FFStackConfig:
             raise ValueError(
                 f"early_stopping_patience must be >= 0, got {self.early_stopping_patience}"
             )
-        if not math.isfinite(self.early_stopping_min_delta) or self.early_stopping_min_delta < 0:
+        if (
+            isinstance(self.early_stopping_min_delta, bool)
+            or not isinstance(self.early_stopping_min_delta, Real)
+            or not math.isfinite(self.early_stopping_min_delta)
+            or self.early_stopping_min_delta < 0
+        ):
             raise ValueError(
                 "early_stopping_min_delta must be finite and >= 0, "
                 f"got {self.early_stopping_min_delta}"
