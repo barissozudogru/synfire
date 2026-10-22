@@ -77,7 +77,9 @@ def localize_anomalies(
             raise ValueError("scores must be non-empty for percentile mode")
         threshold = float(np.percentile(scores, percentile))
     else:
-        threshold = float(threshold)  # type: ignore[arg-type]
+        if isinstance(threshold, bool) or not isinstance(threshold, Real):
+            raise ValueError(f"threshold must be a real number, got {threshold!r}")
+        threshold = float(threshold)
 
     if not np.isfinite(threshold):
         raise ValueError(f"threshold must be finite, got {threshold}")

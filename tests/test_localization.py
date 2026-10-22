@@ -117,6 +117,12 @@ class TestLocalizeAnomaliesPercentileThreshold:
         with pytest.raises(ValueError, match="threshold must be finite"):
             localize_anomalies(scores, threshold=threshold)
 
+    @pytest.mark.parametrize("threshold", [True, "0.5"])
+    def test_non_real_threshold_raises(self, threshold):
+        scores = np.array([0.1, 0.9], dtype=np.float64)
+        with pytest.raises(ValueError, match="threshold must be a real number"):
+            localize_anomalies(scores, threshold=threshold)
+
 
 class TestMinDurationFiltering:
     """Tests for min_duration parameter."""
