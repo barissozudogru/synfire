@@ -364,6 +364,11 @@ class TestConfigValidation:
         with pytest.raises(ValueError, match="lr must be > 0"):
             FFStackConfig(lr=-0.01)
 
+    @pytest.mark.parametrize("config_type", [FFLayerConfig, FFStackConfig])
+    def test_non_numeric_weight_decay_rejected(self, config_type):
+        with pytest.raises(ValueError, match="weight_decay must be"):
+            config_type(weight_decay="0.1")
+
     @pytest.mark.parametrize("config_type", [FFLayerConfig, FFStackConfig, HebbianConfig])
     @pytest.mark.parametrize("lr", [True, "0.1"])
     def test_non_real_learning_rate_rejected(self, config_type, lr):
