@@ -128,7 +128,12 @@ class FFLayerConfig:
                 f"lr_schedule must be 'none', 'constant', 'cosine', or 'warmup_cosine', "
                 f"got {self.lr_schedule!r}"
             )
-        if not (0.0 <= self.lr_warmup_fraction <= 1.0):
+        if (
+            isinstance(self.lr_warmup_fraction, bool)
+            or not isinstance(self.lr_warmup_fraction, Real)
+            or not math.isfinite(self.lr_warmup_fraction)
+            or not (0.0 <= self.lr_warmup_fraction <= 1.0)
+        ):
             raise ValueError(
                 f"lr_warmup_fraction must be in [0, 1], got {self.lr_warmup_fraction}"
             )
@@ -240,7 +245,12 @@ class FFStackConfig:
                 f"lr_schedule must be 'none', 'constant', 'cosine', or 'warmup_cosine', "
                 f"got {self.lr_schedule!r}"
             )
-        if not (0.0 <= self.lr_warmup_fraction <= 1.0):
+        if (
+            isinstance(self.lr_warmup_fraction, bool)
+            or not isinstance(self.lr_warmup_fraction, Real)
+            or not math.isfinite(self.lr_warmup_fraction)
+            or not (0.0 <= self.lr_warmup_fraction <= 1.0)
+        ):
             raise ValueError(
                 f"lr_warmup_fraction must be in [0, 1], got {self.lr_warmup_fraction}"
             )
