@@ -212,6 +212,12 @@ class TestLRScheduleConfig:
         with pytest.raises(ValueError, match="lr_schedule must be"):
             FFStackConfig(lr_schedule="exp_decay")
 
+    @pytest.mark.parametrize("config_type", [FFLayerConfig, FFStackConfig])
+    @pytest.mark.parametrize("fraction", [True, "0.1"])
+    def test_non_real_warmup_fraction_rejected(self, config_type, fraction):
+        with pytest.raises(ValueError, match="lr_warmup_fraction must be"):
+            config_type(lr_warmup_fraction=fraction)
+
     def test_stack_lr_schedule_propagates_to_layers(self):
         cfg = FFStackConfig(layer_dims=(32, 16), lr=0.05, epochs_per_layer=10, lr_schedule="cosine")
         state = init_stack(20, cfg)
