@@ -88,7 +88,12 @@ class FFLayerConfig:
             or self.lr <= 0
         ):
             raise ValueError(f"lr must be finite and > 0, got {self.lr}")
-        if not math.isfinite(self.threshold) or self.threshold <= 0:
+        if (
+            isinstance(self.threshold, bool)
+            or not isinstance(self.threshold, Real)
+            or not math.isfinite(self.threshold)
+            or self.threshold <= 0
+        ):
             raise ValueError(f"threshold must be finite and > 0, got {self.threshold}")
         if isinstance(self.epochs, bool) or not isinstance(self.epochs, Integral):
             raise ValueError(f"epochs must be an integer, got {self.epochs!r}")
@@ -175,7 +180,12 @@ class FFStackConfig:
             raise ValueError(f"lr must be finite and > 0, got {self.lr}")
         if self.lr <= 0:
             raise ValueError(f"lr must be > 0, got {self.lr}")
-        if not math.isfinite(self.threshold) or self.threshold <= 0:
+        if (
+            isinstance(self.threshold, bool)
+            or not isinstance(self.threshold, Real)
+            or not math.isfinite(self.threshold)
+            or self.threshold <= 0
+        ):
             raise ValueError(f"threshold must be finite and > 0, got {self.threshold}")
         if isinstance(self.epochs_per_layer, bool) or not isinstance(
             self.epochs_per_layer, Integral
