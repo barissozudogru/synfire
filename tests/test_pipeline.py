@@ -397,6 +397,12 @@ class TestConfigValidation:
         with pytest.raises(ValueError, match="early_stopping_min_delta must be"):
             config_type(early_stopping_min_delta=delta)
 
+    @pytest.mark.parametrize("config_type", [FFLayerConfig, FFStackConfig])
+    @pytest.mark.parametrize("clip_norm", [True, "1.0"])
+    def test_non_real_gradient_clip_norm_rejected(self, config_type, clip_norm):
+        with pytest.raises(ValueError, match="grad_clip_norm must be"):
+            config_type(grad_clip_norm=clip_norm)
+
     @pytest.mark.parametrize("threshold", [np.nan, np.inf, -np.inf])
     @pytest.mark.parametrize("config_type", [FFLayerConfig, FFStackConfig])
     def test_non_finite_threshold_rejected(self, threshold, config_type):
