@@ -141,7 +141,12 @@ class FFLayerConfig:
             raise ValueError(f"grad_clip_norm must be >= 0, got {self.grad_clip_norm}")
         if self.optimizer not in ("sgd", "adam"):
             raise ValueError(f"optimizer must be 'sgd' or 'adam', got {self.optimizer!r}")
-        if not math.isfinite(self.weight_decay) or self.weight_decay < 0:
+        if (
+            isinstance(self.weight_decay, bool)
+            or not isinstance(self.weight_decay, Real)
+            or not math.isfinite(self.weight_decay)
+            or self.weight_decay < 0
+        ):
             raise ValueError(f"weight_decay must be >= 0, got {self.weight_decay}")
         if self.negative_strategy not in ("random", "hard", "curriculum"):
             raise ValueError(
@@ -250,7 +255,12 @@ class FFStackConfig:
             )
         if self.optimizer not in ("sgd", "adam"):
             raise ValueError(f"optimizer must be 'sgd' or 'adam', got {self.optimizer!r}")
-        if not math.isfinite(self.weight_decay) or self.weight_decay < 0:
+        if (
+            isinstance(self.weight_decay, bool)
+            or not isinstance(self.weight_decay, Real)
+            or not math.isfinite(self.weight_decay)
+            or self.weight_decay < 0
+        ):
             raise ValueError(
                 f"weight_decay must be finite and >= 0, got {self.weight_decay}"
             )
