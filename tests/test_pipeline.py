@@ -397,6 +397,12 @@ class TestConfigValidation:
         with pytest.raises(ValueError, match="threshold must be finite and > 0"):
             config_type(threshold=threshold)
 
+    @pytest.mark.parametrize("threshold", [True, "2.0"])
+    @pytest.mark.parametrize("config_type", [FFLayerConfig, FFStackConfig])
+    def test_non_real_threshold_rejected(self, threshold, config_type):
+        with pytest.raises(ValueError, match="threshold must be finite and > 0"):
+            config_type(threshold=threshold)
+
     def test_zero_prototypes_rejected(self):
         with pytest.raises(ValueError, match="n_prototypes must be >= 1"):
             HebbianConfig(n_prototypes=0)
