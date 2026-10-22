@@ -293,7 +293,12 @@ class HebbianConfig:
             or self.lr <= 0
         ):
             raise ValueError(f"lr must be finite and > 0, got {self.lr}")
-        if not math.isfinite(self.inhibition_strength) or self.inhibition_strength < 0:
+        if (
+            isinstance(self.inhibition_strength, bool)
+            or not isinstance(self.inhibition_strength, Real)
+            or not math.isfinite(self.inhibition_strength)
+            or self.inhibition_strength < 0
+        ):
             raise ValueError(
                 "inhibition_strength must be finite and >= 0, "
                 f"got {self.inhibition_strength}"

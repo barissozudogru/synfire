@@ -340,6 +340,11 @@ class TestConfigValidation:
         with pytest.raises(ValueError, match="n_prototypes must be an integer"):
             HebbianConfig(n_prototypes=2.5)
 
+    @pytest.mark.parametrize("inhibition_strength", [True, "0.1"])
+    def test_invalid_inhibition_strength_rejected(self, inhibition_strength):
+        with pytest.raises(ValueError, match="inhibition_strength must be finite and >= 0"):
+            HebbianConfig(inhibition_strength=inhibition_strength)
+
     def test_fractional_layer_dimension_rejected(self):
         with pytest.raises(ValueError, match="layer_dims must contain only integers"):
             FFStackConfig(layer_dims=(16, 2.5))
