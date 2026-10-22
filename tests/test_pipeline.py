@@ -391,6 +391,12 @@ class TestConfigValidation:
         with pytest.raises(ValueError, match=f"{field} must be"):
             FFLayerConfig(**{field: value})
 
+    @pytest.mark.parametrize("config_type", [FFLayerConfig, FFStackConfig])
+    @pytest.mark.parametrize("delta", [True, "0.1"])
+    def test_non_real_early_stopping_delta_rejected(self, config_type, delta):
+        with pytest.raises(ValueError, match="early_stopping_min_delta must be"):
+            config_type(early_stopping_min_delta=delta)
+
     @pytest.mark.parametrize("threshold", [np.nan, np.inf, -np.inf])
     @pytest.mark.parametrize("config_type", [FFLayerConfig, FFStackConfig])
     def test_non_finite_threshold_rejected(self, threshold, config_type):
