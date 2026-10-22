@@ -132,7 +132,12 @@ class FFLayerConfig:
             raise ValueError(
                 f"lr_warmup_fraction must be in [0, 1], got {self.lr_warmup_fraction}"
             )
-        if not math.isfinite(self.grad_clip_norm) or self.grad_clip_norm < 0:
+        if (
+            isinstance(self.grad_clip_norm, bool)
+            or not isinstance(self.grad_clip_norm, Real)
+            or not math.isfinite(self.grad_clip_norm)
+            or self.grad_clip_norm < 0
+        ):
             raise ValueError(f"grad_clip_norm must be >= 0, got {self.grad_clip_norm}")
         if self.optimizer not in ("sgd", "adam"):
             raise ValueError(f"optimizer must be 'sgd' or 'adam', got {self.optimizer!r}")
@@ -234,7 +239,12 @@ class FFStackConfig:
             raise ValueError(
                 f"lr_warmup_fraction must be in [0, 1], got {self.lr_warmup_fraction}"
             )
-        if not math.isfinite(self.grad_clip_norm) or self.grad_clip_norm < 0:
+        if (
+            isinstance(self.grad_clip_norm, bool)
+            or not isinstance(self.grad_clip_norm, Real)
+            or not math.isfinite(self.grad_clip_norm)
+            or self.grad_clip_norm < 0
+        ):
             raise ValueError(
                 f"grad_clip_norm must be finite and >= 0, got {self.grad_clip_norm}"
             )
