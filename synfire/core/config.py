@@ -323,7 +323,7 @@ class AnomalyConfig:
             ("weight_distance", self.weight_distance),
             ("weight_transition", self.weight_transition),
         ):
-            if not math.isfinite(value):
+            if isinstance(value, bool) or not isinstance(value, Real) or not math.isfinite(value):
                 raise ValueError(f"{name} must be finite and >= 0, got {value}")
             if value < 0:
                 raise ValueError(f"{name} must be >= 0, got {value}")
