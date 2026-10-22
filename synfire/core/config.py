@@ -81,7 +81,12 @@ class FFLayerConfig:
             raise ValueError(f"input_dim must be >= 1, got {self.input_dim}")
         if self.hidden_dim < 1:
             raise ValueError(f"hidden_dim must be >= 1, got {self.hidden_dim}")
-        if not math.isfinite(self.lr) or self.lr <= 0:
+        if (
+            isinstance(self.lr, bool)
+            or not isinstance(self.lr, Real)
+            or not math.isfinite(self.lr)
+            or self.lr <= 0
+        ):
             raise ValueError(f"lr must be finite and > 0, got {self.lr}")
         if not math.isfinite(self.threshold) or self.threshold <= 0:
             raise ValueError(f"threshold must be finite and > 0, got {self.threshold}")
@@ -166,7 +171,7 @@ class FFStackConfig:
             )
         if any(d < 1 for d in self.layer_dims):
             raise ValueError(f"all layer_dims must be >= 1, got {self.layer_dims}")
-        if not math.isfinite(self.lr):
+        if isinstance(self.lr, bool) or not isinstance(self.lr, Real) or not math.isfinite(self.lr):
             raise ValueError(f"lr must be finite and > 0, got {self.lr}")
         if self.lr <= 0:
             raise ValueError(f"lr must be > 0, got {self.lr}")
@@ -241,7 +246,12 @@ class HebbianConfig:
             )
         if self.n_prototypes < 1:
             raise ValueError(f"n_prototypes must be >= 1, got {self.n_prototypes}")
-        if not math.isfinite(self.lr) or self.lr <= 0:
+        if (
+            isinstance(self.lr, bool)
+            or not isinstance(self.lr, Real)
+            or not math.isfinite(self.lr)
+            or self.lr <= 0
+        ):
             raise ValueError(f"lr must be finite and > 0, got {self.lr}")
         if not math.isfinite(self.inhibition_strength) or self.inhibition_strength < 0:
             raise ValueError(
