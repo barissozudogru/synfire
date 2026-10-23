@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from numbers import Integral
 from typing import Protocol, runtime_checkable
 
 
@@ -80,6 +81,8 @@ class PrintCallback:
     """
 
     def __init__(self, log_every: int = 10, prefix: str = "") -> None:
+        if isinstance(log_every, bool) or not isinstance(log_every, Integral):
+            raise ValueError(f"log_every must be an integer, got {log_every!r}")
         if log_every < 0:
             raise ValueError(f"log_every must be >= 0, got {log_every}")
         self.log_every = log_every
