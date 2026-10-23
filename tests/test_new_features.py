@@ -797,6 +797,11 @@ class TestMultiResolutionPipeline:
         with pytest.raises(ValueError, match="weights length"):
             MultiResolutionPipeline(window_sizes=[8, 16, 32], weights=[0.5, 0.5])
 
+    @pytest.mark.parametrize("weight", [True, "1.0"])
+    def test_non_real_weights_rejected(self, weight):
+        with pytest.raises(ValueError, match="weights must be real numbers"):
+            MultiResolutionPipeline(window_sizes=[8, 16], weights=[weight, 1.0])
+
     def test_negative_weights_rejected(self):
         with pytest.raises(ValueError, match="weights must be non-negative"):
             MultiResolutionPipeline(window_sizes=[8, 16], weights=[-1.0, 2.0])
