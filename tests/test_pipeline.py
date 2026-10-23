@@ -471,6 +471,11 @@ class TestConfigValidation:
         with pytest.raises(ValueError, match=f"{field} must be a boolean"):
             AnomalyConfig(**{field: value})
 
+    @pytest.mark.parametrize("value", [0, 1, "false"])
+    def test_non_boolean_adaptive_threshold_rejected(self, value):
+        with pytest.raises(ValueError, match="adaptive_threshold must be a boolean"):
+            SynfireConfig(adaptive_threshold=value)
+
 class TestAnomalyScoringMemory:
     """Test that anomaly scoring avoids naive broadcast tensor allocations."""
 
