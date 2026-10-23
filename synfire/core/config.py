@@ -334,6 +334,14 @@ class AnomalyConfig:
 
     def __post_init__(self) -> None:
         for name, value in (
+            ("use_goodness", self.use_goodness),
+            ("use_distance", self.use_distance),
+            ("use_transition", self.use_transition),
+            ("ensemble_goodness", self.ensemble_goodness),
+        ):
+            if not isinstance(value, bool):
+                raise ValueError(f"{name} must be a boolean, got {value!r}")
+        for name, value in (
             ("weight_goodness", self.weight_goodness),
             ("weight_distance", self.weight_distance),
             ("weight_transition", self.weight_transition),
