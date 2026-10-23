@@ -216,3 +216,10 @@ class TestNormalization:
         normed = normalize_windows(windows, NormConfig(method=method))
 
         assert normed.dtype == windows.dtype
+
+    def test_large_float32_windows_do_not_overflow_during_zscore(self):
+        windows = np.array([[1e20, -1e20]], dtype=np.float32)
+
+        normed = normalize_windows(windows, NormConfig(method="zscore"))
+
+        np.testing.assert_allclose(normed, [[1.0, -1.0]], rtol=1e-6)
