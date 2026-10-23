@@ -162,6 +162,15 @@ class TestNormalization:
         normed = normalize_windows(windows)
         assert normed.shape == windows.shape
 
+    @pytest.mark.parametrize("method", ["zscore", "minmax"])
+    def test_empty_feature_dimension_returns_empty_batch(self, method):
+        windows = np.empty((0, 0), dtype=np.float64)
+
+        normed = normalize_windows(windows, NormConfig(method=method))
+
+        assert normed.shape == windows.shape
+        assert normed.dtype == windows.dtype
+
     def test_zscore_stats(self, sine_series):
         windows = sliding_windows(sine_series, WindowConfig(window_size=20))
         normed = normalize_windows(windows, NormConfig(method="zscore"))

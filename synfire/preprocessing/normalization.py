@@ -24,6 +24,9 @@ def normalize_windows(windows: NDArray, config: NormConfig | None = None) -> NDA
     if windows.ndim != 2:
         raise ValueError(f"windows must be 2D, got ndim={windows.ndim}")
 
+    if windows.shape[1] == 0:
+        return windows.copy()
+
     # Promote low-precision inputs while calculating statistics so squaring
     # large float32/float16 values cannot overflow before normalization.
     calculation_dtype = np.result_type(windows.dtype, np.float64)
