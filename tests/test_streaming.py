@@ -238,6 +238,23 @@ class TestScorePointShapeValidation:
         result = scorer.score_point(0.5)
         assert result is None  # buffer not full yet on first call
 
+    def test_complex_input_is_rejected_without_coercion(self, fitted_pipeline):
+        scorer = StreamingScorer(fitted_pipeline)
+
+        with pytest.raises(ValueError, match="real numeric"):
+            scorer.score_point(1.0 + 2.0j)
+
+        assert scorer.buffer_fullness == 0
+
+    def test_object_array_complex_input_is_rejected_without_coercion(self, fitted_pipeline):
+        scorer = StreamingScorer(fitted_pipeline)
+
+        with pytest.raises(ValueError, match="real numeric"):
+            scorer.score_point(np.array([1.0 + 2.0j], dtype=object))
+
+        assert scorer.buffer_fullness == 0
+
+
     def test_zero_d_numpy_array_accepted(self, fitted_pipeline):
         """0-d numpy arrays are equivalent to scalars and must be accepted."""
         scorer = StreamingScorer(fitted_pipeline)
