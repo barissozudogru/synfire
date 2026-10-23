@@ -364,6 +364,12 @@ class SynfireConfig:
     # data-driven rather than relying on the initial config value.
     adaptive_threshold: bool = False
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.adaptive_threshold, bool):
+            raise ValueError(
+                f"adaptive_threshold must be a boolean, got {self.adaptive_threshold!r}"
+            )
+
     def replace(self, **kwargs: Any) -> SynfireConfig:
         """Return a new SynfireConfig with the specified fields replaced.
 
