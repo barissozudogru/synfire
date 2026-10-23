@@ -299,6 +299,12 @@ class TestInputValidation:
         with pytest.raises(ValueError, match="non-empty"):
             pipeline.fit(series)
 
+    def test_zero_channel_series_rejected(self):
+        pipeline = SynfirePipeline()
+        series = np.empty((100, 0))
+        with pytest.raises(ValueError, match="at least one channel"):
+            pipeline.fit(series)
+
     def test_too_short_series_rejected(self):
         pipeline = SynfirePipeline(SynfireConfig(window=WindowConfig(window_size=50)))
         series = np.arange(30, dtype=np.float64)

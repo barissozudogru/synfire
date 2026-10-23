@@ -45,6 +45,8 @@ def _validate_series(series: NDArray, window_size: int, method: str) -> NDArray:
         )
     if arr.ndim not in (1, 2):
         raise ValueError(f"{method}: series must be 1D or 2D, got ndim={arr.ndim}")
+    if arr.ndim == 2 and arr.shape[1] == 0:
+        raise ValueError(f"{method}: series must contain at least one channel")
     if arr.size == 0:
         raise ValueError(f"{method}: series must be non-empty")
     length = arr.shape[0]
