@@ -131,6 +131,14 @@ class TestKmeansPlusPlusEdgeCases:
 
 
 class TestTrainHebbian:
+    @pytest.mark.parametrize("batch_size", [True, 1.5])
+    def test_non_integer_batch_size_raises(self, rng, batch_size):
+        data = rng.standard_normal((10, 2))
+        state = init_hebbian(data, HebbianConfig(n_prototypes=2))
+
+        with pytest.raises(ValueError, match="batch_size must be an integer"):
+            train_hebbian(state, data, batch_size=batch_size)
+
     @pytest.mark.parametrize("batch_size", [0, -1])
     def test_non_positive_batch_size_raises(self, rng, batch_size):
         data = rng.standard_normal((10, 2))
