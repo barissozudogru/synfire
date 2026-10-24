@@ -276,6 +276,21 @@ class TestPairwiseSqDistances:
             ff_mod._HARD_NEG_ELEMENT_LIMIT = original
         np.testing.assert_allclose(got, expected, atol=1e-10)
 
+    def test_integer_inputs_keep_fractional_distances_in_chunked_path(self):
+        """Chunked distances must not use integer storage or arithmetic."""
+        import synfire.layers.ff_layer as ff_mod
+
+        original = ff_mod._HARD_NEG_ELEMENT_LIMIT
+        try:
+            ff_mod._HARD_NEG_ELEMENT_LIMIT = 1
+            a = np.array([[0, 0]], dtype=np.int32)
+            b = np.array([[0.5, 0.0], [1.0, 0.0]], dtype=np.float64)
+            got = _pairwise_sq_distances(a, b)
+        finally:
+            ff_mod._HARD_NEG_ELEMENT_LIMIT = original
+
+        np.testing.assert_allclose(got, [[0.25, 1.0]])
+
     def test_output_non_negative(self):
         """Squared distances are always non-negative (clamp guards numerical noise)."""
         rng = np.random.default_rng(2)
