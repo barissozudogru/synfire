@@ -178,20 +178,23 @@ def _pairwise_sq_distances(a: NDArray, b: NDArray, chunk_size: int = 512) -> NDA
     """
     Bp, D = a.shape
     Bn = b.shape[0]
+    calculation_dtype = np.result_type(a.dtype, b.dtype, np.float64)
+    a_calculation = a.astype(calculation_dtype, copy=False)
+    b_calculation = b.astype(calculation_dtype, copy=False)
 
     # If the naive tensor fits comfortably, use the fast matrix path.
     if Bp * Bn * D <= _HARD_NEG_ELEMENT_LIMIT:
-        diff = a[:, np.newaxis, :] - b[np.newaxis, :, :]  # (Bp, Bn, D)
+        diff = a_calculation[:, np.newaxis, :] - b_calculation[np.newaxis, :, :]  # (Bp, Bn, D)
         return np.sum(diff ** 2, axis=2)
 
     # Chunked computation: ||a-b||^2 = ||a||^2 + ||b||^2 - 2*(a @ b^T)
-    a_sq = np.sum(a ** 2, axis=1)   # (Bp,)
-    b_sq = np.sum(b ** 2, axis=1)   # (Bn,)
-    dists = np.empty((Bp, Bn), dtype=a.dtype)
+    a_sq = np.sum(a_calculation ** 2, axis=1)   # (Bp,)
+    b_sq = np.sum(b_calculation ** 2, axis=1)   # (Bn,)
+    dists = np.empty((Bp, Bn), dtype=calculation_dtype)
     for start in range(0, Bp, chunk_size):
         end = min(start + chunk_size, Bp)
         # (chunk, Bn)
-        cross = a[start:end] @ b.T
+        cross = a_calculation[start:end] @ b_calculation.T
         dists[start:end] = a_sq[start:end, np.newaxis] + b_sq[np.newaxis, :] - 2.0 * cross
     # Numerical noise can produce tiny negatives; clamp to zero.
     np.maximum(dists, 0.0, out=dists)
