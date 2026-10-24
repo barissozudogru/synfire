@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from numbers import Integral
 
 import numpy as np
 from numpy.typing import NDArray
@@ -188,6 +189,8 @@ def train_hebbian(
     Returns:
         Trained state.
     """
+    if isinstance(batch_size, bool) or not isinstance(batch_size, Integral):
+        raise ValueError(f"batch_size must be an integer, got {batch_size!r}")
     if batch_size < 1:
         raise ValueError(f"batch_size must be >= 1, got {batch_size}")
 
