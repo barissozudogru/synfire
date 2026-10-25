@@ -13,6 +13,11 @@ def test_empty_scores_rejected():
         localize_anomalies(np.array([]), percentile=95)
 
 
+def test_complex_scores_rejected_without_silent_cast():
+    with pytest.raises(ValueError, match="scores must contain real numeric values"):
+        localize_anomalies(np.array([1.0 + 2.0j]), threshold=0.5)
+
+
 class TestLocalizeAnomaliesFixedThreshold:
     """Tests using a fixed numeric threshold."""
 
