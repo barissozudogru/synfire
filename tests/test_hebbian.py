@@ -116,6 +116,14 @@ class TestDistances:
         dists = _pairwise_sq_distances(x, proto)
         assert np.all(dists >= 0.0)
 
+    def test_pairwise_sq_distances_promotes_integer_inputs_before_squaring(self):
+        x = np.array([[4_000_000_000, 0]], dtype=np.int64)
+        proto = np.array([[0, 0]], dtype=np.int64)
+
+        dists = _pairwise_sq_distances(x, proto)
+
+        np.testing.assert_allclose(dists, [[16e18]])
+
 
 
 class TestKmeansPlusPlusEdgeCases:

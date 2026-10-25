@@ -76,9 +76,12 @@ def _pairwise_sq_distances(x: NDArray, prototypes: NDArray) -> NDArray:
     Returns:
         Distance matrix of shape (batch, n_prototypes).
     """
-    x_sq = np.sum(x ** 2, axis=1, keepdims=True)
-    p_sq = np.sum(prototypes ** 2, axis=1, keepdims=True).T
-    dists = x_sq + p_sq - 2.0 * (x @ prototypes.T)
+    calculation_dtype = np.result_type(x.dtype, prototypes.dtype, np.float64)
+    x_calculation = x.astype(calculation_dtype, copy=False)
+    prototypes_calculation = prototypes.astype(calculation_dtype, copy=False)
+    x_sq = np.sum(x_calculation ** 2, axis=1, keepdims=True)
+    p_sq = np.sum(prototypes_calculation ** 2, axis=1, keepdims=True).T
+    dists = x_sq + p_sq - 2.0 * (x_calculation @ prototypes_calculation.T)
     np.maximum(dists, 0.0, out=dists)
     return dists
 
