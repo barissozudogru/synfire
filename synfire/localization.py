@@ -63,7 +63,13 @@ def localize_anomalies(
     if threshold is not None and percentile is not None:
         raise ValueError("Provide exactly one of 'threshold' or 'percentile', not both.")
 
-    scores = np.asarray(scores, dtype=np.float64)
+    raw_scores = np.asarray(scores)
+    if np.issubdtype(raw_scores.dtype, np.complexfloating):
+        raise ValueError("scores must contain real numeric values")
+    try:
+        scores = np.asarray(raw_scores, dtype=np.float64)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("scores must contain real numeric values") from exc
     if scores.ndim != 1:
         raise ValueError(f"scores must be 1D, got ndim={scores.ndim}")
     if not np.isfinite(scores).all():
