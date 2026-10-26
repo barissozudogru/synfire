@@ -206,6 +206,13 @@ class TestTrainLayer:
         with pytest.raises(ValueError, match="must contain at least one sample"):
             train_layer(state, np.empty((0, 2)), np.empty((0, 2)))
 
+    def test_empty_negative_batch_rejected_before_hard_mining(self):
+        cfg = FFLayerConfig(input_dim=2, hidden_dim=2, negative_strategy="hard")
+        state = init_layer(cfg)
+
+        with pytest.raises(ValueError, match="x_pos and x_neg must contain at least one sample"):
+            train_step(state, np.ones((1, 2)), np.empty((0, 2)))
+
     def test_loss_decreases(self, sine_series, rng):
         windows = sliding_windows(sine_series, WindowConfig(window_size=20))
         pos_l, pos_r = make_consecutive_pairs(windows)

@@ -270,6 +270,9 @@ def train_step(
     """
     effective_lr = lr if lr is not None else state.config.lr
 
+    if len(x_pos) == 0 or len(x_neg) == 0:
+        raise ValueError("x_pos and x_neg must contain at least one sample")
+
     # Apply hard negative mining if configured
     if state.config.negative_strategy != "random":
         x_neg = _mine_hard_negatives(x_pos, x_neg, state, epoch, total_epochs)
