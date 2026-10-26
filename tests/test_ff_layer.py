@@ -199,6 +199,11 @@ class TestGradientCorrectness:
 
 
 class TestTrainLayer:
+    @pytest.mark.parametrize("seed", [True, 1.5])
+    def test_non_integer_seed_rejected(self, seed):
+        with pytest.raises(ValueError, match="seed must be an integer"):
+            FFLayerConfig(input_dim=2, hidden_dim=2, seed=seed)
+
     def test_empty_batch_raises(self):
         cfg = FFLayerConfig(input_dim=2, hidden_dim=2, epochs=1)
         state = init_layer(cfg)

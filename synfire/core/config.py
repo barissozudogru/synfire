@@ -99,6 +99,8 @@ class FFLayerConfig:
             raise ValueError(f"epochs must be an integer, got {self.epochs!r}")
         if self.epochs < 1:
             raise ValueError(f"epochs must be >= 1, got {self.epochs}")
+        if isinstance(self.seed, bool) or not isinstance(self.seed, Integral):
+            raise ValueError(f"seed must be an integer, got {self.seed!r}")
         if isinstance(self.batch_size, bool) or not isinstance(self.batch_size, Integral):
             raise ValueError(f"batch_size must be an integer, got {self.batch_size!r}")
         if self.batch_size < 0:
