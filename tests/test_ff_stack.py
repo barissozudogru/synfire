@@ -16,6 +16,11 @@ from synfire.preprocessing.windows import (
 
 
 class TestFFStackInit:
+    @pytest.mark.parametrize("seed", [True, 1.5])
+    def test_non_integer_seed_rejected(self, seed):
+        with pytest.raises(ValueError, match="seed must be an integer"):
+            FFStackConfig(seed=seed)
+
     @pytest.mark.parametrize("lr", [np.nan, np.inf, -np.inf])
     def test_non_finite_learning_rate_rejected(self, lr):
         with pytest.raises(ValueError, match="lr must be finite and > 0"):
