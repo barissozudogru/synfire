@@ -96,6 +96,10 @@ class StreamingScorer:
             contains_complex = any(np.iscomplexobj(item) for item in raw_arr.flat)
         if contains_complex:
             raise ValueError("score_point expects real numeric values, got complex input")
+        if not np.issubdtype(raw_arr.dtype, np.number):
+            raise ValueError(
+                f"score_point expects real numeric values, got dtype={raw_arr.dtype}"
+            )
         orig_arr = np.asarray(value, dtype=np.float64)
 
         if orig_arr.ndim > 1:

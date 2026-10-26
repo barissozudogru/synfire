@@ -246,6 +246,14 @@ class TestScorePointShapeValidation:
 
         assert scorer.buffer_fullness == 0
 
+    def test_string_input_is_rejected_without_numeric_coercion(self, fitted_pipeline):
+        scorer = StreamingScorer(fitted_pipeline)
+
+        with pytest.raises(ValueError, match="real numeric"):
+            scorer.score_point("1.0")
+
+        assert scorer.buffer_fullness == 0
+
     def test_object_array_complex_input_is_rejected_without_coercion(self, fitted_pipeline):
         scorer = StreamingScorer(fitted_pipeline)
 
