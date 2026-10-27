@@ -201,6 +201,9 @@ def fit_anomaly_scaler(
     Returns:
         AnomalyScaler with fixed normalization stats and transition matrix.
     """
+    if x_train.shape[0] == 0:
+        raise ValueError("x_train must contain at least one training pair")
+
     # Build training transition matrix (single forward pass, reused below)
     train_activations = forward_stack(stack, x_train)
     representations = train_activations[-1]

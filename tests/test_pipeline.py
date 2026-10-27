@@ -11,7 +11,11 @@ from synfire.core.config import (
     WindowConfig,
 )
 from synfire.layers.ff_layer import forward, goodness, init_layer, train_layer
-from synfire.pipeline.anomaly import anomaly_scores, anomaly_scores_decomposed
+from synfire.pipeline.anomaly import (
+    anomaly_scores,
+    anomaly_scores_decomposed,
+    fit_anomaly_scaler,
+)
 from synfire.preprocessing.normalization import normalize_windows
 from synfire.preprocessing.windows import (
     make_consecutive_pairs,
@@ -156,6 +160,19 @@ class TestSynfirePipeline:
             small_config.anomaly, pipeline._effective_threshold,
         )
         assert decomposed.combined.shape == (0,)
+
+    def test_empty_training_pairs_raise_clear_scaler_error(self, sine_series, small_config):
+        pipeline = SynfirePipeline(small_config).fit(sine_series)
+        assert pipeline._stack is not None and pipeline._hebbian is not None
+
+        with pytest.raises(ValueError, match="x_train must contain at least one training pair"):
+            fit_anomaly_scaler(
+                pipeline._stack,
+                pipeline._hebbian,
+                np.empty((0, pipeline._stack.layers[0].W.shape[1])),
+                small_config.anomaly,
+                pipeline._effective_threshold,
+            )
 
     def test_cluster_shape(self, sine_series, small_config):
         pipeline = SynfirePipeline(small_config)
