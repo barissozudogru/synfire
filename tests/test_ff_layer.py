@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from synfire.core.config import FFLayerConfig, WindowConfig
+from synfire.core.config import FFLayerConfig, FFStackConfig, HebbianConfig, WindowConfig
 from synfire.layers.ff_layer import (
     _pairwise_sq_distances,
     compute_loss,
@@ -203,6 +203,11 @@ class TestTrainLayer:
     def test_non_integer_seed_rejected(self, seed):
         with pytest.raises(ValueError, match="seed must be an integer"):
             FFLayerConfig(input_dim=2, hidden_dim=2, seed=seed)
+
+    @pytest.mark.parametrize("config_type", [FFLayerConfig, FFStackConfig, HebbianConfig])
+    def test_negative_seed_rejected(self, config_type):
+        with pytest.raises(ValueError, match="seed must be >= 0"):
+            config_type(seed=-1)
 
     def test_empty_batch_raises(self):
         cfg = FFLayerConfig(input_dim=2, hidden_dim=2, epochs=1)
