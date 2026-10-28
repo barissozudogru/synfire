@@ -18,6 +18,15 @@ def test_complex_scores_rejected_without_silent_cast():
         localize_anomalies(np.array([1.0 + 2.0j]), threshold=0.5)
 
 
+@pytest.mark.parametrize(
+    "scores",
+    [np.array([False, True]), np.array([False, True], dtype=object)],
+)
+def test_boolean_scores_rejected_as_non_numeric(scores):
+    with pytest.raises(ValueError, match="scores must contain real numeric values"):
+        localize_anomalies(scores, threshold=0.5)
+
+
 class TestLocalizeAnomaliesFixedThreshold:
     """Tests using a fixed numeric threshold."""
 
