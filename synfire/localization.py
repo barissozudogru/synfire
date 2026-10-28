@@ -64,6 +64,12 @@ def localize_anomalies(
         raise ValueError("Provide exactly one of 'threshold' or 'percentile', not both.")
 
     raw_scores = np.asarray(scores)
+    if np.issubdtype(raw_scores.dtype, np.bool_):
+        raise ValueError("scores must contain real numeric values")
+    if raw_scores.dtype == object and any(
+        isinstance(value, bool | np.bool_) for value in raw_scores.flat
+    ):
+        raise ValueError("scores must contain real numeric values")
     if np.issubdtype(raw_scores.dtype, np.complexfloating):
         raise ValueError("scores must contain real numeric values")
     try:
