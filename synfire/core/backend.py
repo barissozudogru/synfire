@@ -17,6 +17,7 @@ class NumPyBackend:
 
     def sigmoid(self, x: NDArray) -> NDArray:
         # Numerically stable sigmoid
+        x = np.asarray(x, dtype=np.float64)
         pos = x >= 0
         z = np.empty_like(x)
         z[pos] = 1.0 / (1.0 + np.exp(-x[pos]))
