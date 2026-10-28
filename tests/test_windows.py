@@ -150,6 +150,20 @@ class TestShuffledPairs:
         # Right should be a permutation of the same windows
         assert sorted(right[:, 0].tolist()) == sorted(left[:, 0].tolist())
 
+    def test_shuffled_pairs_do_not_pair_a_window_with_itself(self):
+        windows = np.arange(4, dtype=np.float64).reshape(2, 2)
+
+        left, right = make_shuffled_pairs(windows, np.random.default_rng(0))
+
+        assert not np.any(np.all(left == right, axis=1))
+
+    def test_shuffled_pairs_with_one_window_returns_no_pairs(self):
+        windows = np.array([[1.0, 2.0]])
+
+        left, right = make_shuffled_pairs(windows, np.random.default_rng(0))
+
+        assert left.shape == right.shape == (0, 2)
+
 
 class TestNormalization:
     @pytest.mark.parametrize("windows", [np.arange(4.0), np.array(1.0)])
