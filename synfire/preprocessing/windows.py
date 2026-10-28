@@ -31,6 +31,8 @@ def sliding_windows(series: NDArray, config: WindowConfig | None = None) -> NDAr
         series = series[:, np.newaxis]
 
     T, C = series.shape
+    if C == 0:
+        raise ValueError("series must contain at least one channel")
     w = config.window_size
     s = config.stride
 

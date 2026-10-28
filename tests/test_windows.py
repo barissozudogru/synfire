@@ -49,6 +49,12 @@ class TestSlidingWindows:
         with pytest.raises(ValueError, match=r"series must be 1D or 2D"):
             sliding_windows(series, WindowConfig(window_size=1))
 
+    def test_zero_channel_series_raises_clear_error(self):
+        series = np.empty((10, 0), dtype=np.float64)
+
+        with pytest.raises(ValueError, match=r"series must contain at least one channel"):
+            sliding_windows(series, WindowConfig(window_size=3))
+
     def test_default_config(self, sine_series):
         default_ws = WindowConfig().window_size
         windows = sliding_windows(sine_series)
