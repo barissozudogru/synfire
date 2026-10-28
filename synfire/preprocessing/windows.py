@@ -109,5 +109,14 @@ def make_shuffled_pairs(
     Returns:
         Tuple of (left, shuffled_right) arrays.
     """
+    if len(windows) < 2:
+        return windows[:0], windows[:0].copy()
+
     perm = rng.permutation(len(windows))
+    fixed = np.flatnonzero(perm == np.arange(len(windows)))
+    if len(fixed) == 1:
+        other = (fixed[0] + 1) % len(windows)
+        perm[fixed[0]], perm[other] = perm[other], perm[fixed[0]]
+    elif len(fixed) > 1:
+        perm[fixed] = np.roll(perm[fixed], 1)
     return windows, windows[perm]
