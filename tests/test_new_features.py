@@ -270,6 +270,28 @@ class TestLayerNorm:
         bias_changed = not np.allclose(state.ln_bias, new_state.ln_bias)
         assert gain_changed or bias_changed, "LN parameters must be updated during training"
 
+    def test_gradient_clipping_includes_layer_norm_parameters(self, small_pos_neg):
+        x_pos, x_neg = small_pos_neg
+        clip_norm = 1e-6
+        learning_rate = 0.05
+        cfg = FFLayerConfig(
+            input_dim=20,
+            hidden_dim=16,
+            layer_norm=True,
+            lr=learning_rate,
+            grad_clip_norm=clip_norm,
+        )
+        state = init_layer(cfg)
+        new_state, _ = train_step(state, x_pos, x_neg)
+
+        update_norm = np.sqrt(
+            np.sum(((new_state.W - state.W) / learning_rate) ** 2)
+            + np.sum(((new_state.b - state.b) / learning_rate) ** 2)
+            + np.sum(((new_state.ln_gain - state.ln_gain) / learning_rate) ** 2)
+            + np.sum(((new_state.ln_bias - state.ln_bias) / learning_rate) ** 2)
+        )
+        assert update_norm <= clip_norm * (1 + 1e-6)
+
     def test_layer_norm_converges(self, small_pos_neg):
         x_pos, x_neg = small_pos_neg
         cfg = FFLayerConfig(
