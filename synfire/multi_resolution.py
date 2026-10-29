@@ -133,6 +133,7 @@ class MultiResolutionPipeline:
         Returns:
             self, for method chaining.
         """
+        self._fitted = False
         self._pipelines = []
         for ws in self.window_sizes:
             logger.info("MultiResolutionPipeline: fitting window_size=%d", ws)
