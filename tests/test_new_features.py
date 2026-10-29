@@ -822,6 +822,30 @@ class TestMultiResolutionPipeline:
         assert len(mr._pipelines) == 2
         assert mr._fitted
 
+    def test_failed_refit_clears_fitted_state(self, sine_series, monkeypatch):
+        mr = MultiResolutionPipeline(window_sizes=[8, 16])
+        mr.fit(sine_series)
+
+        original_fit = SynfirePipeline.fit
+        fit_calls = 0
+
+        def fail_on_second_fit(self, series):
+            nonlocal fit_calls
+            fit_calls += 1
+            if fit_calls == 2:
+                raise RuntimeError("forced fit failure")
+            return original_fit(self, series)
+
+        monkeypatch.setattr(SynfirePipeline, "fit", fail_on_second_fit)
+
+        with pytest.raises(RuntimeError, match="forced fit failure"):
+            mr.fit(sine_series)
+
+        assert not mr._fitted
+        assert len(mr._pipelines) == 1
+        with pytest.raises(RuntimeError, match="not fitted"):
+            mr.anomaly_scores(sine_series)
+
     def test_anomaly_scores_finite(self, sine_series):
         mr = MultiResolutionPipeline(window_sizes=[8, 16])
         mr.fit(sine_series)
