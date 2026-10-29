@@ -332,6 +332,11 @@ def train_step(
     # Gradients for W and b
     dW = backend.matmul(d_pre_pos.T, x_pos) + backend.matmul(d_pre_neg.T, x_neg)
     db = np.sum(d_pre_pos, axis=0) + np.sum(d_pre_neg, axis=0)
+    d_ln_gain = None
+    d_ln_bias = None
+    if use_ln and d_ln_gain_pos is not None and d_ln_bias_pos is not None:
+        d_ln_gain = d_ln_gain_pos + d_ln_gain_neg  # type: ignore[operator]
+        d_ln_bias = d_ln_bias_pos + d_ln_bias_neg  # type: ignore[operator]
 
     # Weight decay (L2): adds wd * W to gradient (not applied to biases)
     wd = state.config.weight_decay
@@ -341,11 +346,17 @@ def train_step(
     # Gradient clipping by global norm
     clip_norm = state.config.grad_clip_norm
     if clip_norm > 0.0:
-        grad_norm = math.sqrt(float(np.sum(dW ** 2)) + float(np.sum(db ** 2)))
+        grad_squared = float(np.sum(dW ** 2)) + float(np.sum(db ** 2))
+        if d_ln_gain is not None and d_ln_bias is not None:
+            grad_squared += float(np.sum(d_ln_gain ** 2)) + float(np.sum(d_ln_bias ** 2))
+        grad_norm = math.sqrt(grad_squared)
         if grad_norm > clip_norm:
             scale = clip_norm / (grad_norm + 1e-12)
             dW = dW * scale
             db = db * scale
+            if d_ln_gain is not None and d_ln_bias is not None:
+                d_ln_gain = d_ln_gain * scale
+                d_ln_bias = d_ln_bias * scale
 
     # Optimizer step
     if state.config.optimizer == "adam":
@@ -381,9 +392,7 @@ def train_step(
     # Update layer norm parameters
     new_ln_gain = state.ln_gain
     new_ln_bias = state.ln_bias
-    if use_ln and d_ln_gain_pos is not None:
-        d_ln_gain = d_ln_gain_pos + d_ln_gain_neg  # type: ignore[operator]
-        d_ln_bias = d_ln_bias_pos + d_ln_bias_neg  # type: ignore[operator]
+    if d_ln_gain is not None and d_ln_bias is not None:
         new_ln_gain = state.ln_gain - effective_lr * d_ln_gain  # type: ignore[operator]
         new_ln_bias = state.ln_bias - effective_lr * d_ln_bias  # type: ignore[operator]
 
