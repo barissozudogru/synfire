@@ -18,6 +18,17 @@ def test_complex_scores_rejected_without_silent_cast():
         localize_anomalies(np.array([1.0 + 2.0j]), threshold=0.5)
 
 
+def test_string_scores_rejected_without_silent_cast():
+    with pytest.raises(ValueError, match="scores must contain real numeric values"):
+        localize_anomalies(np.array(["1.0", "2.0"]), threshold=0.5)
+
+
+def test_numeric_object_scores_are_accepted():
+    segments = localize_anomalies(np.array([0.0, 1.0], dtype=object), threshold=0.5)
+
+    assert [(segment.start_idx, segment.end_idx) for segment in segments] == [(1, 2)]
+
+
 @pytest.mark.parametrize(
     "scores",
     [np.array([False, True]), np.array([False, True], dtype=object)],
