@@ -12,6 +12,19 @@ from synfire.preprocessing.windows import (
 
 
 class TestSlidingWindows:
+    def test_complex_series_rejected(self):
+        series = np.array([1.0 + 1.0j, 2.0 + 2.0j, 3.0 + 3.0j])
+
+        with pytest.raises(ValueError, match="real numeric values"):
+            sliding_windows(series, WindowConfig(window_size=2))
+
+    @pytest.mark.parametrize("invalid_value", [np.nan, np.inf, -np.inf])
+    def test_non_finite_series_rejected(self, invalid_value):
+        series = np.array([0.0, invalid_value, 2.0])
+
+        with pytest.raises(ValueError, match="non-finite values"):
+            sliding_windows(series, WindowConfig(window_size=2))
+
     def test_univariate_shape(self, sine_series):
         cfg = WindowConfig(window_size=20, stride=1)
         windows = sliding_windows(sine_series, cfg)

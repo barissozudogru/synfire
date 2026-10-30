@@ -26,6 +26,12 @@ def sliding_windows(series: NDArray, config: WindowConfig | None = None) -> NDAr
 
     if series.ndim not in (1, 2):
         raise ValueError(f"series must be 1D or 2D, got ndim={series.ndim}")
+    if not np.issubdtype(series.dtype, np.number) or np.issubdtype(
+        series.dtype, np.complexfloating
+    ):
+        raise ValueError(f"series must contain real numeric values, got dtype={series.dtype}")
+    if not np.isfinite(series).all():
+        raise ValueError("series contains non-finite values (NaN or Inf)")
 
     if series.ndim == 1:
         series = series[:, np.newaxis]
