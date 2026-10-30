@@ -316,6 +316,11 @@ class TestPairwiseSqDistances:
         dists = _pairwise_sq_distances(a, b)
         assert np.all(dists >= 0.0)
 
+    @pytest.mark.parametrize("chunk_size", [0, -1, True])
+    def test_non_positive_chunk_size_rejected(self, chunk_size):
+        with pytest.raises(ValueError, match="chunk_size must be a positive integer"):
+            _pairwise_sq_distances(np.ones((2, 1)), np.ones((2, 1)), chunk_size=chunk_size)
+
     def test_hard_strategy_uses_distances(self):
         """With negative_strategy='hard', the returned negatives are the closest ones."""
         rng = np.random.default_rng(3)
