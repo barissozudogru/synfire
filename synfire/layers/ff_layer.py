@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import math
 from dataclasses import dataclass
+from numbers import Integral
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -176,6 +177,9 @@ def _pairwise_sq_distances(a: NDArray, b: NDArray, chunk_size: int = 512) -> NDA
     Returns:
         Distance matrix of shape (Bp, Bn).
     """
+    if isinstance(chunk_size, bool) or not isinstance(chunk_size, Integral) or chunk_size < 1:
+        raise ValueError(f"chunk_size must be a positive integer, got {chunk_size!r}")
+
     Bp, D = a.shape
     Bn = b.shape[0]
     calculation_dtype = np.result_type(a.dtype, b.dtype, np.float64)
