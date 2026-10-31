@@ -499,6 +499,12 @@ class TestConfigValidation:
         with pytest.raises(ValueError, match="adaptive_threshold must be a boolean"):
             SynfireConfig(adaptive_threshold=value)
 
+    @pytest.mark.parametrize("config_type", [FFLayerConfig, FFStackConfig])
+    @pytest.mark.parametrize("value", [0, 1, "false"])
+    def test_non_boolean_layer_norm_rejected(self, config_type, value):
+        with pytest.raises(ValueError, match="layer_norm must be a boolean"):
+            config_type(layer_norm=value)
+
 class TestAnomalyScoringMemory:
     """Test that anomaly scoring avoids naive broadcast tensor allocations."""
 

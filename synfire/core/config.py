@@ -73,6 +73,8 @@ class FFLayerConfig:
     negative_strategy: Literal["random", "hard", "curriculum"] = "random"
 
     def __post_init__(self) -> None:
+        if not isinstance(self.layer_norm, bool):
+            raise ValueError(f"layer_norm must be a boolean, got {self.layer_norm!r}")
         if isinstance(self.input_dim, bool) or not isinstance(self.input_dim, Integral):
             raise ValueError(f"input_dim must be an integer, got {self.input_dim!r}")
         if isinstance(self.hidden_dim, bool) or not isinstance(self.hidden_dim, Integral):
@@ -192,6 +194,8 @@ class FFStackConfig:
     negative_strategy: Literal["random", "hard", "curriculum"] = "random"
 
     def __post_init__(self) -> None:
+        if not isinstance(self.layer_norm, bool):
+            raise ValueError(f"layer_norm must be a boolean, got {self.layer_norm!r}")
         if not self.layer_dims:
             raise ValueError("layer_dims must be non-empty")
         if any(isinstance(d, bool) or not isinstance(d, Integral) for d in self.layer_dims):
