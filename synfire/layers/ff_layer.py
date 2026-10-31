@@ -491,6 +491,11 @@ def train_layer(
     n = len(x_pos)
     if n == 0 or len(x_neg) == 0:
         raise ValueError("x_pos and x_neg must contain at least one sample")
+    if len(x_pos) != len(x_neg):
+        raise ValueError(
+            "x_pos and x_neg must contain the same number of samples, "
+            f"got {len(x_pos)} and {len(x_neg)}"
+        )
     # batch_size=0 means full batch
     effective_batch = n if batch_size == 0 else min(batch_size, n)
 

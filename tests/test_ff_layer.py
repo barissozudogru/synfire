@@ -207,6 +207,13 @@ class TestGradientCorrectness:
 
 
 class TestTrainLayer:
+    def test_mismatched_positive_and_negative_batches_raise_clear_error(self):
+        config = FFLayerConfig(input_dim=2, hidden_dim=2, epochs=1, batch_size=2)
+        state = init_layer(config)
+
+        with pytest.raises(ValueError, match="same number of samples"):
+            train_layer(state, np.ones((2, 2)), np.ones((1, 2)))
+
     @pytest.mark.parametrize("seed", [True, 1.5])
     def test_non_integer_seed_rejected(self, seed):
         with pytest.raises(ValueError, match="seed must be an integer"):
