@@ -77,6 +77,9 @@ def activation_statistics(
     Returns:
         List of ``LayerStats``, one per layer.
     """
+    if len(x) == 0:
+        raise ValueError("x must contain at least one sample")
+
     activations = forward_stack(stack, x)
     stats = []
     for i, acts in enumerate(activations):

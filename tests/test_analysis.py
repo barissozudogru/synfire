@@ -77,6 +77,12 @@ class TestLayerAnomalyDecomposition:
 class TestActivationStatistics:
     """Tests for activation_statistics."""
 
+    def test_empty_batch_raises_clear_error(self, fitted_pipeline):
+        input_dim = fitted_pipeline._stack.layers[0].config.input_dim
+
+        with pytest.raises(ValueError, match="x must contain at least one sample"):
+            activation_statistics(fitted_pipeline._stack, np.empty((0, input_dim)))
+
     def test_returns_list_of_layer_stats(self, fitted_pipeline, test_pairs):
         stats = activation_statistics(fitted_pipeline._stack, test_pairs)
         assert isinstance(stats, list)
