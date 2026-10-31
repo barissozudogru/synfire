@@ -45,6 +45,10 @@ class StreamingScorer:
         self._pipeline = pipeline
         self._window_size = pipeline.config.window.window_size
         self._stride = pipeline.config.window.stride
+        if pipeline._stack is None or not pipeline._stack.layers:
+            raise RuntimeError("Pipeline state is corrupted: missing stack layers.")
+        input_dim = pipeline._stack.layers[0].config.input_dim
+        self._expected_channels = input_dim // (2 * self._window_size)
         # Buffer holds enough points to form windows whose starts are separated
         # by the configured stride.
         self._buffer: deque = deque(maxlen=self._window_size + self._stride)
@@ -117,6 +121,13 @@ class StreamingScorer:
         # the batch API does.
         if not np.isfinite(arr).all():
             raise ValueError("score_point: value contains non-finite values (NaN or Inf)")
+
+        if arr.shape[0] != self._expected_channels:
+            raise ValueError(
+                f"Channel count mismatch: expected {self._expected_channels} channel(s), "
+                f"pipeline expects {self._expected_channels} channel(s), got {arr.shape[0]}. "
+                "All calls to score_point must supply the channel count used during fitting."
+            )
 
         # Validate channel count consistency once the buffer has at least one entry.
         if self._buffer:
