@@ -185,6 +185,12 @@ class TestShuffledPairs:
 
 
 class TestNormalization:
+    def test_complex_windows_rejected(self):
+        windows = np.array([[1.0 + 1.0j, 2.0 + 2.0j]])
+
+        with pytest.raises(ValueError, match=r"real numeric values"):
+            normalize_windows(windows)
+
     @pytest.mark.parametrize("windows", [np.arange(4.0), np.array(1.0)])
     def test_non_2d_windows_raise_clear_error(self, windows):
         with pytest.raises(ValueError, match=r"windows must be 2D"):
