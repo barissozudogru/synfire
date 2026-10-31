@@ -108,6 +108,14 @@ class TestComputeLoss:
 
 
 class TestTrainStep:
+    @pytest.mark.parametrize("lr", [-1.0, np.nan, np.inf, True])
+    def test_invalid_learning_rate_override_rejected(self, lr):
+        cfg = FFLayerConfig(input_dim=2, hidden_dim=2)
+        state = init_layer(cfg)
+
+        with pytest.raises(ValueError, match="lr must be finite and >= 0"):
+            train_step(state, np.ones((1, 2)), np.zeros((1, 2)), lr=lr)
+
     def test_loss_returned(self, sine_series, rng):
         windows = sliding_windows(sine_series, WindowConfig(window_size=20))
         pos_l, pos_r = make_consecutive_pairs(windows)
