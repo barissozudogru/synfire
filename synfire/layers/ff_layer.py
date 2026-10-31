@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import math
 from dataclasses import dataclass
-from numbers import Integral
+from numbers import Integral, Real
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -273,6 +273,13 @@ def train_step(
         (updated_state, loss_value).
     """
     effective_lr = lr if lr is not None else state.config.lr
+    if lr is not None and (
+        isinstance(lr, bool)
+        or not isinstance(lr, Real)
+        or not math.isfinite(lr)
+        or lr < 0
+    ):
+        raise ValueError(f"lr must be finite and >= 0, got {lr}")
 
     if len(x_pos) == 0 or len(x_neg) == 0:
         raise ValueError("x_pos and x_neg must contain at least one sample")
