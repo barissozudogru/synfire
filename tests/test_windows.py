@@ -191,6 +191,13 @@ class TestNormalization:
         with pytest.raises(ValueError, match=r"real numeric values"):
             normalize_windows(windows)
 
+    @pytest.mark.parametrize("invalid_value", [np.nan, np.inf, -np.inf])
+    def test_non_finite_windows_rejected(self, invalid_value):
+        windows = np.array([[0.0, invalid_value, 2.0]])
+
+        with pytest.raises(ValueError, match=r"non-finite values"):
+            normalize_windows(windows)
+
     @pytest.mark.parametrize("windows", [np.arange(4.0), np.array(1.0)])
     def test_non_2d_windows_raise_clear_error(self, windows):
         with pytest.raises(ValueError, match=r"windows must be 2D"):
