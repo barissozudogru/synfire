@@ -27,7 +27,8 @@ def normalize_windows(windows: NDArray, config: NormConfig | None = None) -> NDA
         windows.dtype, np.complexfloating
     ):
         raise ValueError(f"windows must contain real numeric values, got dtype={windows.dtype}")
-
+    if not np.isfinite(windows).all():
+        raise ValueError("windows contains non-finite values (NaN or Inf)")
     if windows.shape[1] == 0:
         return windows.copy()
 
