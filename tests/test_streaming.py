@@ -276,9 +276,21 @@ class TestScorePointShapeValidation:
         with pytest.raises(ValueError, match="Channel count mismatch"):
             scorer.score_point(np.array([0.1, 0.2]))  # 2 channels != 1
 
+    def test_channel_mismatch_with_fitted_pipeline_raises_immediately(self, fitted_pipeline):
+        """A stream must match the channel count used to fit the pipeline."""
+        scorer = StreamingScorer(fitted_pipeline)
+
+        with pytest.raises(ValueError, match="pipeline expects 1 channel"):
+            scorer.score_point(np.array([0.1, 0.2]))
+
+        assert scorer.buffer_fullness == 0
+
     def test_channel_mismatch_reversed_raises(self, fitted_pipeline):
         """Feeding a scalar after a 2-channel value must raise ValueError."""
-        scorer = StreamingScorer(fitted_pipeline)
+        t = np.arange(500, dtype=np.float64)
+        multivariate = np.column_stack([np.sin(2 * np.pi * t / 50), np.cos(2 * np.pi * t / 50)])
+        multivariate_pipeline = SynfirePipeline(fitted_pipeline.config).fit(multivariate)
+        scorer = StreamingScorer(multivariate_pipeline)
         scorer.score_point(np.array([0.1, 0.2]))  # establishes channel count = 2
         with pytest.raises(ValueError, match="Channel count mismatch"):
             scorer.score_point(0.3)  # 1 channel != 2
