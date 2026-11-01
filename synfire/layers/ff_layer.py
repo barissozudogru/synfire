@@ -84,6 +84,13 @@ def forward(state: FFLayerState, x: NDArray) -> NDArray:
     Returns:
         Activations of shape (batch, hidden_dim).
     """
+    if x.ndim != 2:
+        raise ValueError(f"x must be 2D with shape (batch, input_dim), got ndim={x.ndim}")
+    if x.shape[1] != state.config.input_dim:
+        raise ValueError(
+            "x must have the same number of features as the layer input_dim, "
+            f"got {x.shape[1]} and {state.config.input_dim}"
+        )
     pre = backend.matmul(x, state.W.T) + state.b
     if state.config.layer_norm and state.ln_gain is not None and state.ln_bias is not None:
         normed, _, _ = _apply_layer_norm(pre, state.ln_gain, state.ln_bias)

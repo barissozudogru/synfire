@@ -47,6 +47,19 @@ class TestFFLayerInit:
 
 
 class TestForwardAndGoodness:
+    @pytest.mark.parametrize(
+        ("x", "message"),
+        [
+            (np.ones(20), r"x must be 2D"),
+            (np.ones((10, 19)), r"same number of features"),
+        ],
+    )
+    def test_forward_rejects_invalid_input_shape(self, x, message):
+        state = init_layer(FFLayerConfig(input_dim=20, hidden_dim=32))
+
+        with pytest.raises(ValueError, match=message):
+            forward(state, x)
+
     def test_forward_shape(self):
         cfg = FFLayerConfig(input_dim=20, hidden_dim=32)
         state = init_layer(cfg)
