@@ -76,6 +76,14 @@ def _pairwise_sq_distances(x: NDArray, prototypes: NDArray) -> NDArray:
     Returns:
         Distance matrix of shape (batch, n_prototypes).
     """
+    if x.ndim != 2:
+        raise ValueError(f"x must be 2D with shape (batch, features), got ndim={x.ndim}")
+    if prototypes.ndim != 2:
+        raise ValueError(
+            f"prototypes must be 2D with shape (n_prototypes, features), "
+            f"got ndim={prototypes.ndim}"
+        )
+
     calculation_dtype = np.result_type(x.dtype, prototypes.dtype, np.float64)
     x_calculation = x.astype(calculation_dtype, copy=False)
     prototypes_calculation = prototypes.astype(calculation_dtype, copy=False)

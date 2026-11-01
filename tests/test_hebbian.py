@@ -49,6 +49,12 @@ class TestHebbianInit:
 
 
 class TestAssign:
+    def test_one_dimensional_input_raises_clear_error(self, rng):
+        state = init_hebbian(rng.standard_normal((4, 3)), HebbianConfig(n_prototypes=2))
+
+        with pytest.raises(ValueError, match=r"x must be 2D"):
+            assign(state, np.ones(3))
+
     def test_assignment_shape(self, rng):
         data = rng.standard_normal((50, 8))
         cfg = HebbianConfig(n_prototypes=4)
