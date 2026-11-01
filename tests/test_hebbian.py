@@ -77,6 +77,13 @@ class TestAssign:
 
 
 class TestDistances:
+    def test_pairwise_sq_distances_rejects_mismatched_feature_counts(self):
+        x = np.ones((2, 3))
+        proto = np.ones((4, 2))
+
+        with pytest.raises(ValueError, match=r"same number of features"):
+            _pairwise_sq_distances(x, proto)
+
     def test_distance_shape(self, rng):
         data = rng.standard_normal((30, 8))
         cfg = HebbianConfig(n_prototypes=3)

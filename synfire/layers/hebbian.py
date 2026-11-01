@@ -83,6 +83,11 @@ def _pairwise_sq_distances(x: NDArray, prototypes: NDArray) -> NDArray:
             f"prototypes must be 2D with shape (n_prototypes, features), "
             f"got ndim={prototypes.ndim}"
         )
+    if x.shape[1] != prototypes.shape[1]:
+        raise ValueError(
+            "x and prototypes must have the same number of features, "
+            f"got {x.shape[1]} and {prototypes.shape[1]}"
+        )
 
     calculation_dtype = np.result_type(x.dtype, prototypes.dtype, np.float64)
     x_calculation = x.astype(calculation_dtype, copy=False)
