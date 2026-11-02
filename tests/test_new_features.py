@@ -651,6 +651,13 @@ class TestVisualization:
         with pytest.raises(ValueError, match="labels must have the same length as scores"):
             viz.plot_anomaly_scores(rng.random(3), labels=np.array([1, 0]), ax=ax)
 
+    def test_plot_anomaly_scores_rejects_non_1d_scores(self, rng, monkeypatch):
+        import synfire.visualization as viz
+
+        monkeypatch.setattr(viz, "_require_matplotlib", lambda: (None, None))
+        with pytest.raises(ValueError, match="scores must be 1D"):
+            viz.plot_anomaly_scores(rng.random((2, 3)), ax=_FakeAxes())
+
     def test_plot_anomaly_scores_rejects_non_binary_labels(self, rng, monkeypatch):
         import sys
         import types

@@ -156,6 +156,10 @@ def plot_anomaly_scores(
     if ax is None:
         _, ax = plt.subplots(figsize=(12, 4))
 
+    scores = np.asarray(scores)
+    if scores.ndim != 1:
+        raise ValueError(f"scores must be 1D, got ndim={scores.ndim}")
+
     t = np.arange(len(scores))
     ax.plot(t, scores, color="steelblue", linewidth=0.8, label="Score")
 
