@@ -169,7 +169,12 @@ def plot_anomaly_scores(
         )
 
     if labels is not None:
-        labels = np.asarray(labels, dtype=bool)
+        labels = np.asarray(labels)
+        if labels.ndim != 1:
+            raise ValueError(f"labels must be 1D, got ndim={labels.ndim}")
+        if len(labels) != len(scores):
+            raise ValueError("labels must have the same length as scores")
+        labels = labels.astype(bool)
         # Shade anomalous regions
         in_anomaly = False
         start = 0
