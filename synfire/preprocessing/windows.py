@@ -24,6 +24,11 @@ def sliding_windows(series: NDArray, config: WindowConfig | None = None) -> NDAr
     if config is None:
         config = WindowConfig()
 
+    # Accept array-like inputs consistently with the public pipeline methods.
+    # Validation below relies on ndarray attributes, so conversion must happen
+    # before inspecting the shape or dtype.
+    series = np.asarray(series)
+
     if series.ndim not in (1, 2):
         raise ValueError(f"series must be 1D or 2D, got ndim={series.ndim}")
     if not np.issubdtype(series.dtype, np.number) or np.issubdtype(
