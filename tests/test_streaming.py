@@ -140,6 +140,23 @@ def test_streaming_respects_window_stride():
     np.testing.assert_allclose(stream_scores, batch_scores)
 
 
+def test_failed_refit_invalidates_existing_streaming_scorer():
+    config = SynfireConfig(
+        window=WindowConfig(window_size=10, stride=1),
+        ff_stack=FFStackConfig(layer_dims=(16,), lr=0.01, threshold=2.0, epochs_per_layer=5),
+        hebbian=HebbianConfig(n_prototypes=4, lr=0.05, inhibition_strength=0.01, epochs=5),
+    )
+    pipeline = SynfirePipeline(config).fit(np.sin(np.arange(100, dtype=float) / 5))
+    scorer = StreamingScorer(pipeline)
+
+    with pytest.raises(ValueError, match="shorter than window_size"):
+        pipeline.fit(np.arange(5, dtype=float))
+
+    with pytest.raises(RuntimeError, match="not fitted"):
+        for value in np.arange(config.window.window_size + config.window.stride):
+            scorer.score_point(value)
+
+
 def test_strided_streaming_reports_multivariate_readiness_and_cadence():
     """Strided multivariate scores start and repeat at the configured cadence."""
     config = SynfireConfig(
