@@ -31,6 +31,11 @@ class TestSlidingWindows:
         expected_n = (len(sine_series) - 20) // 1 + 1
         assert windows.shape == (expected_n, 20)
 
+    def test_array_like_series_is_converted_before_validation(self):
+        windows = sliding_windows([1.0, 2.0, 3.0], WindowConfig(window_size=2))
+
+        np.testing.assert_array_equal(windows, [[1.0, 2.0], [2.0, 3.0]])
+
     def test_multivariate_shape(self, multivariate_series):
         cfg = WindowConfig(window_size=10, stride=5)
         windows = sliding_windows(multivariate_series, cfg)
