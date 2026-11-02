@@ -174,6 +174,16 @@ def plot_anomaly_scores(
             raise ValueError(f"labels must be 1D, got ndim={labels.ndim}")
         if len(labels) != len(scores):
             raise ValueError("labels must have the same length as scores")
+        if (
+            not np.issubdtype(labels.dtype, np.bool_)
+            and (
+                not np.issubdtype(labels.dtype, np.number)
+                or np.issubdtype(labels.dtype, np.complexfloating)
+            )
+        ):
+            raise ValueError("labels must contain only binary values (0 or 1)")
+        if not np.isfinite(labels).all() or not np.isin(labels, (0, 1)).all():
+            raise ValueError("labels must contain only binary values (0 or 1)")
         labels = labels.astype(bool)
         # Shade anomalous regions
         in_anomaly = False
