@@ -328,6 +328,17 @@ class TestInputValidation:
         with pytest.raises(ValueError, match="shorter than window_size"):
             pipeline.fit(series)
 
+    def test_failed_refit_clears_fitted_state(self):
+        pipeline = SynfirePipeline()
+        pipeline.fit(np.arange(100, dtype=np.float64))
+
+        with pytest.raises(ValueError, match="shorter than window_size"):
+            pipeline.fit(np.arange(5, dtype=np.float64))
+
+        assert not pipeline._fitted
+        with pytest.raises(RuntimeError, match="not fitted"):
+            pipeline.anomaly_scores(np.arange(100, dtype=np.float64))
+
     def test_list_series_supported(self):
         pipeline = SynfirePipeline()
         series = [float(x) for x in range(100)]

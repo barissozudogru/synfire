@@ -94,6 +94,7 @@ class StreamingScorer:
                 contains non-finite values (NaN or Inf), or if its channel
                 count differs from previously ingested points.
         """
+        self._pipeline._check_fitted()
         raw_arr = np.asarray(value)
         contains_complex = np.issubdtype(raw_arr.dtype, np.complexfloating)
         if raw_arr.dtype == np.dtype(object):

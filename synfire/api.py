@@ -125,6 +125,7 @@ class SynfirePipeline:
         Returns:
             self, for method chaining.
         """
+        self._fitted = False
         series = _validate_series(series, self.config.window.window_size, "fit")
         logger.info(
             "Fitting SynfirePipeline: series shape=%s, window_size=%d, layer_dims=%s",
