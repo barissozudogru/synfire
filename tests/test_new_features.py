@@ -637,6 +637,20 @@ class TestVisualization:
             elif "matplotlib.patches" in sys.modules:
                 del sys.modules["matplotlib.patches"]
 
+    def test_plot_anomaly_scores_rejects_mismatched_label_length(self, rng, monkeypatch):
+        import sys
+        import types
+
+        import synfire.visualization as viz
+
+        monkeypatch.setattr(viz, "_require_matplotlib", lambda: (None, None))
+        patches = types.ModuleType("matplotlib.patches")
+        patches.Patch = lambda **kw: None
+        monkeypatch.setitem(sys.modules, "matplotlib.patches", patches)
+        ax = _FakeAxes()
+        with pytest.raises(ValueError, match="labels must have the same length as scores"):
+            viz.plot_anomaly_scores(rng.random(3), labels=np.array([1, 0]), ax=ax)
+
     def test_plot_score_decomposition_with_mocked_mpl(self, rng):
         import types
 
