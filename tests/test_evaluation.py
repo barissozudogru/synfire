@@ -119,6 +119,19 @@ class TestMultiSeedEvaluation:
                 config=config, n_seeds=1, base_seed=1.5,
             )
 
+    def test_negative_base_seed_rejected(self):
+        config = SynfireConfig(
+            window=WindowConfig(window_size=5, stride=1),
+            ff_stack=FFStackConfig(layer_dims=(4,), epochs_per_layer=1),
+            hebbian=HebbianConfig(n_prototypes=2, epochs=1),
+        )
+
+        with pytest.raises(ValueError, match="base_seed must be >= 0"):
+            evaluate_multi_seed(
+                np.arange(30.0), np.arange(30.0), np.zeros(25),
+                config=config, n_seeds=1, base_seed=-1,
+            )
+
     @pytest.fixture
     def small_config(self):
         return SynfireConfig(
