@@ -213,6 +213,11 @@ class TestNormalization:
         normed = normalize_windows(windows)
         assert normed.shape == windows.shape
 
+    def test_array_like_windows_are_converted_before_validation(self):
+        normed = normalize_windows([[1.0, 2.0], [3.0, 4.0]])
+
+        np.testing.assert_allclose(normed.mean(axis=1), [0.0, 0.0])
+
     @pytest.mark.parametrize("method", ["zscore", "minmax"])
     def test_empty_feature_dimension_returns_empty_batch(self, method):
         windows = np.empty((0, 0), dtype=np.float64)

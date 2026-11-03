@@ -21,6 +21,7 @@ def normalize_windows(windows: NDArray, config: NormConfig | None = None) -> NDA
     if config is None:
         config = NormConfig()
 
+    windows = np.asarray(windows)
     if windows.ndim != 2:
         raise ValueError(f"windows must be 2D, got ndim={windows.ndim}")
     if not np.issubdtype(windows.dtype, np.number) or np.issubdtype(
