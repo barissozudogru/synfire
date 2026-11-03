@@ -134,6 +134,8 @@ def evaluate_multi_seed(
         raise ValueError(f"n_seeds must be an integer, got {n_seeds!r}")
     if n_seeds < 1:
         raise ValueError(f"n_seeds must be >= 1, got {n_seeds}")
+    if isinstance(base_seed, bool) or not isinstance(base_seed, Integral):
+        raise ValueError(f"base_seed must be an integer, got {base_seed!r}")
 
     seeds = list(range(base_seed, base_seed + n_seeds))
     auc_scores = []
