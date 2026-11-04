@@ -259,6 +259,12 @@ def plot_score_decomposition(
     if decomposed.transition_surprise is not None:
         components.append(("Transition Surprise", decomposed.transition_surprise))
 
+    for name, component in components:
+        if len(component) != n:
+            raise ValueError(
+                f"{name} must have the same length as combined ({n}), got {len(component)}"
+            )
+
     t = np.arange(n)
     colors = ["steelblue", "darkorange", "seagreen"]
 
