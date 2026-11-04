@@ -707,6 +707,20 @@ class TestVisualization:
         finally:
             viz._require_matplotlib = orig
 
+    def test_plot_score_decomposition_rejects_mismatched_component_length(self, rng, monkeypatch):
+        import synfire.visualization as viz
+
+        monkeypatch.setattr(viz, "_require_matplotlib", lambda: (None, None))
+        decomposed = DecomposedAnomalyScore(
+            goodness_deficit=rng.random(2),
+            prototype_distance=None,
+            transition_surprise=None,
+            combined=rng.random(3),
+        )
+
+        with pytest.raises(ValueError, match="same length as combined"):
+            viz.plot_score_decomposition(decomposed, ax=_FakeAxes())
+
     def test_missing_matplotlib_raises_import_error(self, monkeypatch):
         """When matplotlib is absent, _require_matplotlib raises ImportError."""
         import synfire.visualization as viz
