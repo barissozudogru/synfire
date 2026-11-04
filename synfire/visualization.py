@@ -159,6 +159,12 @@ def plot_anomaly_scores(
     scores = np.asarray(scores)
     if scores.ndim != 1:
         raise ValueError(f"scores must be 1D, got ndim={scores.ndim}")
+    if not np.issubdtype(scores.dtype, np.number) or np.issubdtype(
+        scores.dtype, np.complexfloating
+    ):
+        raise ValueError("scores must contain real numeric values")
+    if not np.isfinite(scores).all():
+        raise ValueError("scores must contain only finite values")
 
     t = np.arange(len(scores))
     ax.plot(t, scores, color="steelblue", linewidth=0.8, label="Score")
