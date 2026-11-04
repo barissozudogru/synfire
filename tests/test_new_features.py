@@ -658,6 +658,14 @@ class TestVisualization:
         with pytest.raises(ValueError, match="scores must be 1D"):
             viz.plot_anomaly_scores(rng.random((2, 3)), ax=_FakeAxes())
 
+    @pytest.mark.parametrize("scores", [np.array([1.0, np.nan]), np.array([1.0, np.inf])])
+    def test_plot_anomaly_scores_rejects_non_finite_scores(self, scores, monkeypatch):
+        import synfire.visualization as viz
+
+        monkeypatch.setattr(viz, "_require_matplotlib", lambda: (None, None))
+        with pytest.raises(ValueError, match="scores must contain only finite values"):
+            viz.plot_anomaly_scores(scores, ax=_FakeAxes())
+
     def test_plot_anomaly_scores_rejects_non_binary_labels(self, rng, monkeypatch):
         import sys
         import types
