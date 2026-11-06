@@ -77,6 +77,10 @@ class TestLayerAnomalyDecomposition:
 class TestActivationStatistics:
     """Tests for activation_statistics."""
 
+    def test_scalar_input_raises_value_error(self, fitted_pipeline):
+        with pytest.raises(ValueError, match="x must be 2D"):
+            activation_statistics(fitted_pipeline._stack, np.array(1.0))
+
     def test_empty_batch_raises_clear_error(self, fitted_pipeline):
         input_dim = fitted_pipeline._stack.layers[0].config.input_dim
 
