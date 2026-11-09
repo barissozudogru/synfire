@@ -63,7 +63,9 @@ def _build_transition_matrix(
     np.add.at(trans, (from_labels, to_labels), 1)
 
     row_sums = trans.sum(axis=1, keepdims=True)
-    return trans / (row_sums + eps)
+    probabilities = np.zeros_like(trans)
+    np.divide(trans, row_sums, out=probabilities, where=row_sums > 0)
+    return probabilities
 
 
 def _transition_surprise(
