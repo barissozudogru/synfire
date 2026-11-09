@@ -12,6 +12,7 @@ from synfire.core.config import (
 )
 from synfire.layers.ff_layer import forward, goodness, init_layer, train_layer
 from synfire.pipeline.anomaly import (
+    _build_transition_matrix,
     anomaly_scores,
     anomaly_scores_decomposed,
     fit_anomaly_scaler,
@@ -22,6 +23,14 @@ from synfire.preprocessing.windows import (
     make_random_pairs,
     sliding_windows,
 )
+
+
+def test_transition_matrix_active_rows_are_normalized_exactly():
+    labels = np.array([0, 1, 0, 1, 0, 1, 0])
+
+    transition = _build_transition_matrix(labels, n_prototypes=2)
+
+    np.testing.assert_array_equal(transition.sum(axis=1), [1.0, 1.0])
 
 
 class TestPhase0Integration:
