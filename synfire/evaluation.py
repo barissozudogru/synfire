@@ -130,6 +130,10 @@ def evaluate_multi_seed(
     if config is None:
         config = SynfireConfig()
 
+    labels = np.asarray(labels)
+    if labels.ndim != 1:
+        raise ValueError(f"labels must be 1D, got {labels.ndim}D")
+
     if isinstance(n_seeds, bool) or not isinstance(n_seeds, Integral):
         raise ValueError(f"n_seeds must be an integer, got {n_seeds!r}")
     if n_seeds < 1:

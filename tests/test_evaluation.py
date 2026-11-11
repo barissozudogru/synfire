@@ -89,6 +89,13 @@ class TestLabelScoreAlignment:
 
 
 class TestMultiSeedEvaluation:
+    def test_scalar_labels_raise_clear_shape_error(self, small_config):
+        with pytest.raises(ValueError, match="labels must be 1D"):
+            evaluate_multi_seed(
+                np.arange(30.0), np.arange(30.0), 0,
+                config=small_config, n_seeds=1,
+            )
+
     @pytest.mark.parametrize(
         ("n_seeds", "message"),
         [(True, "n_seeds must be an integer"), (1.5, "n_seeds must be an integer"),
