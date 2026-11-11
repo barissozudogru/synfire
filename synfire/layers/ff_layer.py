@@ -187,6 +187,11 @@ def _pairwise_sq_distances(a: NDArray, b: NDArray, chunk_size: int = 512) -> NDA
     if isinstance(chunk_size, bool) or not isinstance(chunk_size, Integral) or chunk_size < 1:
         raise ValueError(f"chunk_size must be a positive integer, got {chunk_size!r}")
 
+    if a.ndim != 2:
+        raise ValueError(f"a must be 2D with shape (batch, features), got ndim={a.ndim}")
+    if b.ndim != 2:
+        raise ValueError(f"b must be 2D with shape (batch, features), got ndim={b.ndim}")
+
     Bp, D = a.shape
     Bn = b.shape[0]
     calculation_dtype = np.result_type(a.dtype, b.dtype, np.float64)
