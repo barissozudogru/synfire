@@ -77,6 +77,7 @@ def activation_statistics(
     Returns:
         List of ``LayerStats``, one per layer.
     """
+    x = np.asarray(x)
     if x.ndim != 2:
         raise ValueError(f"x must be 2D with shape (batch, input_dim), got ndim={x.ndim}")
     if len(x) == 0:

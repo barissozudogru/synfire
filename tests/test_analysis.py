@@ -81,6 +81,15 @@ class TestActivationStatistics:
         with pytest.raises(ValueError, match="x must be 2D"):
             activation_statistics(fitted_pipeline._stack, np.array(1.0))
 
+    def test_array_like_batch_is_accepted(self, fitted_pipeline):
+        input_dim = fitted_pipeline._stack.layers[0].config.input_dim
+        stats = activation_statistics(
+            fitted_pipeline._stack,
+            [[0.0] * input_dim],
+        )
+
+        assert len(stats) == len(fitted_pipeline._stack.layers)
+
     def test_empty_batch_raises_clear_error(self, fitted_pipeline):
         input_dim = fitted_pipeline._stack.layers[0].config.input_dim
 
