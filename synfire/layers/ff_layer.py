@@ -194,6 +194,10 @@ def _pairwise_sq_distances(a: NDArray, b: NDArray, chunk_size: int = 512) -> NDA
 
     Bp, D = a.shape
     Bn = b.shape[0]
+    if b.shape[1] != D:
+        raise ValueError(
+            f"a and b must have the same feature dimension, got {D} and {b.shape[1]}"
+        )
     calculation_dtype = np.result_type(a.dtype, b.dtype, np.float64)
     a_calculation = a.astype(calculation_dtype, copy=False)
     b_calculation = b.astype(calculation_dtype, copy=False)
