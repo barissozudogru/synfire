@@ -294,6 +294,10 @@ class TestTrainLayer:
 class TestPairwiseSqDistances:
     """Tests for the chunked pairwise squared-distance helper (H-1 fix)."""
 
+    def test_rejects_non_2d_negative_batch(self):
+        with pytest.raises(ValueError, match=r"b must be 2D"):
+            _pairwise_sq_distances(np.ones((2, 3)), np.ones(3))
+
     def test_matches_broadcast_small(self):
         """Chunked result matches the naive broadcast result for small inputs."""
         rng = np.random.default_rng(0)
