@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 import numpy as np
 import pytest
 
@@ -27,6 +29,13 @@ def test_numeric_object_scores_are_accepted():
     segments = localize_anomalies(np.array([0.0, 1.0], dtype=object), threshold=0.5)
 
     assert [(segment.start_idx, segment.end_idx) for segment in segments] == [(1, 2)]
+
+
+def test_object_values_that_only_coerce_to_float_are_rejected():
+    scores = np.array([Decimal("1.0"), Decimal("2.0")], dtype=object)
+
+    with pytest.raises(ValueError, match="real numeric"):
+        localize_anomalies(scores, threshold=1.5)
 
 
 @pytest.mark.parametrize(
