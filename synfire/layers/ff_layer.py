@@ -99,7 +99,7 @@ def forward(state: FFLayerState, x: NDArray) -> NDArray:
 
 
 def goodness(activations: NDArray) -> NDArray:
-    """Compute goodness as mean squared activation per sample.
+    """Compute goodness as mean squared real, finite activation per sample.
 
     Args:
         activations: Shape (batch, hidden_dim).
@@ -111,6 +111,12 @@ def goodness(activations: NDArray) -> NDArray:
         raise ValueError(
             f"activations must be 2D with shape (batch, hidden_dim), got ndim={activations.ndim}"
         )
+    if not np.issubdtype(activations.dtype, np.number) or np.issubdtype(
+        activations.dtype, np.complexfloating
+    ):
+        raise ValueError("activations must contain real numeric values")
+    if not np.isfinite(activations).all():
+        raise ValueError("activations must contain only finite values")
     return backend.mean(activations**2, axis=1)
 
 
