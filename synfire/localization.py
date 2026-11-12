@@ -66,7 +66,8 @@ def localize_anomalies(
     raw_scores = np.asarray(scores)
     if raw_scores.dtype == object:
         if any(
-            isinstance(value, bool | np.bool_ | str | bytes | complex | np.complexfloating)
+            isinstance(value, bool | np.bool_)
+            or not isinstance(value, Real)
             for value in raw_scores.flat
         ):
             raise ValueError("scores must contain real numeric values")
