@@ -250,7 +250,10 @@ def plot_score_decomposition(
         _, ax = plt.subplots(figsize=(12, 4))
 
     components: list[tuple[str, NDArray]] = []
-    n = len(decomposed.combined)
+    combined = np.asarray(decomposed.combined)
+    if combined.ndim != 1:
+        raise ValueError(f"combined must be 1D, got ndim={combined.ndim}")
+    n = len(combined)
 
     if decomposed.goodness_deficit is not None:
         components.append(("Goodness Deficit", decomposed.goodness_deficit))
@@ -274,7 +277,7 @@ def plot_score_decomposition(
         ax.stackplot(t, *arrays, labels=labels, colors=colors[:len(components)], alpha=0.75)
         ax.legend(loc="upper left")
     else:
-        ax.plot(t, decomposed.combined, color="steelblue", label="Combined")
+        ax.plot(t, combined, color="steelblue", label="Combined")
         ax.legend()
 
     ax.set_title(title)
