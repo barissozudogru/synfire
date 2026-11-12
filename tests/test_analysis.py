@@ -96,6 +96,27 @@ class TestActivationStatistics:
         with pytest.raises(ValueError, match="x must contain at least one sample"):
             activation_statistics(fitted_pipeline._stack, np.empty((0, input_dim)))
 
+    @pytest.mark.parametrize("invalid_value", [np.nan, np.inf, -np.inf])
+    def test_non_finite_batch_is_rejected(self, fitted_pipeline, invalid_value):
+        input_dim = fitted_pipeline._stack.layers[0].config.input_dim
+        x = np.zeros((1, input_dim))
+        x[0, 0] = invalid_value
+
+        with pytest.raises(ValueError, match="only finite values"):
+            activation_statistics(fitted_pipeline._stack, x)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [np.complex128, np.str_, object, bool],
+        ids=["complex", "string", "object", "boolean"],
+    )
+    def test_non_real_numeric_batch_is_rejected(self, fitted_pipeline, dtype):
+        input_dim = fitted_pipeline._stack.layers[0].config.input_dim
+        x = np.zeros((1, input_dim), dtype=dtype)
+
+        with pytest.raises(ValueError, match="real numeric values"):
+            activation_statistics(fitted_pipeline._stack, x)
+
     def test_returns_list_of_layer_stats(self, fitted_pipeline, test_pairs):
         stats = activation_statistics(fitted_pipeline._stack, test_pairs)
         assert isinstance(stats, list)

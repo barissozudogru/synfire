@@ -72,7 +72,7 @@ def activation_statistics(
 
     Args:
         stack: Trained FF stack.
-        x: Input array of shape (batch, input_dim).
+        x: Finite real-valued numeric array of shape (batch, input_dim).
 
     Returns:
         List of ``LayerStats``, one per layer.
@@ -80,6 +80,12 @@ def activation_statistics(
     x = np.asarray(x)
     if x.ndim != 2:
         raise ValueError(f"x must be 2D with shape (batch, input_dim), got ndim={x.ndim}")
+    if not np.issubdtype(x.dtype, np.number) or np.issubdtype(
+        x.dtype, np.complexfloating
+    ):
+        raise ValueError("x must contain real numeric values")
+    if not np.isfinite(x).all():
+        raise ValueError("x must contain only finite values")
     if len(x) == 0:
         raise ValueError("x must contain at least one sample")
 
