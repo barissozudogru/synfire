@@ -263,6 +263,9 @@ def plot_score_decomposition(
         components.append(("Transition Surprise", decomposed.transition_surprise))
 
     for name, component in components:
+        component = np.asarray(component)
+        if component.ndim != 1:
+            raise ValueError(f"{name} must be 1D, got ndim={component.ndim}")
         if len(component) != n:
             raise ValueError(
                 f"{name} must have the same length as combined ({n}), got {len(component)}"
