@@ -12,7 +12,9 @@ Typical usage::
 
 from __future__ import annotations
 
+import math
 from importlib import import_module
+from numbers import Real
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -165,6 +167,13 @@ def plot_anomaly_scores(
         raise ValueError("scores must contain real numeric values")
     if not np.isfinite(scores).all():
         raise ValueError("scores must contain only finite values")
+
+    if threshold is not None and (
+        isinstance(threshold, bool)
+        or not isinstance(threshold, Real)
+        or not math.isfinite(threshold)
+    ):
+        raise ValueError("threshold must be a finite real number")
 
     t = np.arange(len(scores))
     ax.plot(t, scores, color="steelblue", linewidth=0.8, label="Score")
