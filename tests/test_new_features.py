@@ -735,6 +735,20 @@ class TestVisualization:
         with pytest.raises(ValueError, match="combined must be 1D"):
             viz.plot_score_decomposition(decomposed, ax=_FakeAxes())
 
+    def test_plot_score_decomposition_rejects_scalar_component(self, monkeypatch):
+        import synfire.visualization as viz
+
+        monkeypatch.setattr(viz, "_require_matplotlib", lambda: (None, None))
+        decomposed = DecomposedAnomalyScore(
+            goodness_deficit=np.array(1.0),
+            prototype_distance=None,
+            transition_surprise=None,
+            combined=np.array([1.0]),
+        )
+
+        with pytest.raises(ValueError, match="Goodness Deficit must be 1D"):
+            viz.plot_score_decomposition(decomposed, ax=_FakeAxes())
+
     def test_missing_matplotlib_raises_import_error(self, monkeypatch):
         """When matplotlib is absent, _require_matplotlib raises ImportError."""
         import synfire.visualization as viz
