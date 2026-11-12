@@ -84,6 +84,21 @@ class TestForwardAndGoodness:
         with pytest.raises(ValueError, match=r"activations must be 2D"):
             goodness(np.ones(32))
 
+    @pytest.mark.parametrize("invalid_value", [np.nan, np.inf, -np.inf])
+    def test_goodness_rejects_non_finite_input(self, invalid_value):
+        activations = np.zeros((1, 2))
+        activations[0, 0] = invalid_value
+
+        with pytest.raises(ValueError, match="only finite values"):
+            goodness(activations)
+
+    @pytest.mark.parametrize("dtype", [np.complex128, np.str_, object, bool])
+    def test_goodness_rejects_non_real_numeric_input(self, dtype):
+        activations = np.zeros((1, 2), dtype=dtype)
+
+        with pytest.raises(ValueError, match="real numeric values"):
+            goodness(activations)
+
     def test_goodness_nonneg(self):
         h = np.abs(np.random.default_rng(0).standard_normal((10, 32)))
         g = goodness(h)
