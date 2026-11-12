@@ -80,6 +80,10 @@ class TestForwardAndGoodness:
         g = goodness(h)
         assert g.shape == (10,)
 
+    def test_goodness_rejects_non_2d_input(self):
+        with pytest.raises(ValueError, match=r"activations must be 2D"):
+            goodness(np.ones(32))
+
     def test_goodness_nonneg(self):
         h = np.abs(np.random.default_rng(0).standard_normal((10, 32)))
         g = goodness(h)
