@@ -73,6 +73,11 @@ class TestLayerAnomalyDecomposition:
         )
         np.testing.assert_allclose(result_none, result_explicit)
 
+    @pytest.mark.parametrize("threshold", [True, "2.0", np.nan, np.inf, -np.inf])
+    def test_invalid_threshold_is_rejected(self, fitted_pipeline, test_pairs, threshold):
+        with pytest.raises(ValueError, match="threshold must be a finite real number"):
+            layer_anomaly_decomposition(fitted_pipeline._stack, test_pairs, threshold=threshold)
+
 
 class TestActivationStatistics:
     """Tests for activation_statistics."""

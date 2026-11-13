@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
+from numbers import Real
 
 import numpy as np
 from numpy.typing import NDArray
@@ -34,6 +36,12 @@ def layer_anomaly_decomposition(
     """
     if threshold is None:
         threshold = stack.layers[0].config.threshold
+    if (
+        isinstance(threshold, bool)
+        or not isinstance(threshold, Real)
+        or not math.isfinite(threshold)
+    ):
+        raise ValueError("threshold must be a finite real number")
 
     activations = forward_stack(stack, x)
     deficits = np.stack(
