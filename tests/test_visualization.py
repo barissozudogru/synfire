@@ -52,3 +52,31 @@ def test_plot_goodness_distribution_rejects_invalid_threshold(monkeypatch, thres
             threshold=threshold,
             ax=_Axes(),
         )
+
+
+@pytest.mark.parametrize(
+    ("name", "values", "message"),
+    [
+        ("pos_goodness", np.ones((1, 2)), "must be 1D"),
+        ("neg_goodness", np.ones((1, 2)), "must be 1D"),
+        ("pos_goodness", np.array(["bad", "input"]), "must contain real numeric values"),
+        ("neg_goodness", np.array(["bad", "input"]), "must contain real numeric values"),
+        ("pos_goodness", np.array([1.0 + 1.0j, 2.0]), "must contain real numeric values"),
+        ("neg_goodness", np.array([1.0 + 1.0j, 2.0]), "must contain real numeric values"),
+        ("pos_goodness", np.array([np.nan, 1.0]), "must contain only finite values"),
+        ("neg_goodness", np.array([np.inf, 1.0]), "must contain only finite values"),
+    ],
+)
+def test_plot_goodness_distribution_rejects_invalid_goodness_inputs(
+    monkeypatch, name, values, message
+):
+    monkeypatch.setattr(visualization, "_require_matplotlib", lambda: (None, None))
+
+    goodness = {
+        "pos_goodness": np.array([0.1, 0.2]),
+        "neg_goodness": np.array([0.8, 0.9]),
+    }
+    goodness[name] = values
+
+    with pytest.raises(ValueError, match=f"{name}.*{message}"):
+        visualization.plot_goodness_distribution(**goodness, ax=_Axes())
