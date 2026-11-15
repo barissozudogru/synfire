@@ -251,6 +251,37 @@ class TestAnomalyScoreDeterminism:
         assert isinstance(fitted_pipeline._anomaly_scaler.goodness_min, float)
         assert isinstance(fitted_pipeline._anomaly_scaler.goodness_range, float)
 
+    @pytest.mark.parametrize("threshold", [np.nan, np.inf, True, "2.0"])
+    def test_anomaly_scoring_rejects_invalid_threshold(
+        self, fitted_pipeline, sine_series, threshold
+    ):
+        pairs = fitted_pipeline._prepare_test_pairs(sine_series)
+
+        with pytest.raises(ValueError, match="threshold must be a finite real number"):
+            anomaly_scores(
+                fitted_pipeline._stack,
+                fitted_pipeline._hebbian,
+                pairs,
+                threshold=threshold,
+            )
+
+        with pytest.raises(ValueError, match="threshold must be a finite real number"):
+            anomaly_scores_decomposed(
+                fitted_pipeline._stack,
+                fitted_pipeline._hebbian,
+                pairs,
+                threshold=threshold,
+            )
+
+        with pytest.raises(ValueError, match="threshold must be a finite real number"):
+            fit_anomaly_scaler(
+                fitted_pipeline._stack,
+                fitted_pipeline._hebbian,
+                pairs,
+                fitted_pipeline.config.anomaly,
+                threshold,
+            )
+
 
 class TestAblation:
     """Verify ablation toggles work correctly."""

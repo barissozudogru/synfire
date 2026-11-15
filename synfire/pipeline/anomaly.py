@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import logging
+import math
 from dataclasses import dataclass
+from numbers import Real
 
 import numpy as np
 from numpy.typing import NDArray
@@ -18,6 +20,16 @@ from synfire.layers.hebbian import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _validate_threshold(threshold: float) -> None:
+    """Reject thresholds that would make anomaly components non-numeric."""
+    if (
+        isinstance(threshold, bool)
+        or not isinstance(threshold, Real)
+        or not math.isfinite(threshold)
+    ):
+        raise ValueError("threshold must be a finite real number")
 
 
 @dataclass
@@ -203,6 +215,7 @@ def fit_anomaly_scaler(
     Returns:
         AnomalyScaler with fixed normalization stats and transition matrix.
     """
+    _validate_threshold(threshold)
     if x_train.shape[0] == 0:
         raise ValueError("x_train must contain at least one training pair")
 
@@ -265,6 +278,7 @@ def anomaly_scores(
     """
     if config is None:
         config = AnomalyConfig()
+    _validate_threshold(threshold)
 
     trans_prob = scaler.trans_prob if scaler is not None else None
     g_def, dist, surprise = _compute_components(
@@ -327,6 +341,7 @@ def anomaly_scores_decomposed(
     """
     if config is None:
         config = AnomalyConfig()
+    _validate_threshold(threshold)
 
     trans_prob = scaler.trans_prob if scaler is not None else None
     g_def, dist, surprise = _compute_components(
