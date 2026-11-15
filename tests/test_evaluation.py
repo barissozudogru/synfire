@@ -180,6 +180,10 @@ class TestMultiSeedEvaluation:
         assert result.mean_auc == pytest.approx(0.8)
         assert result.std_auc > 0
 
+    def test_empty_result_scores_raise_clear_error(self):
+        with pytest.raises(ValueError, match="auc_scores must contain at least one score"):
+            EvaluationResult(seeds=[], auc_scores=[])
+
     def test_multi_seed_raises_when_labels_longer_than_scores(self, sine_series, small_config):
         labels = np.zeros(len(sine_series))
         with pytest.raises(ValueError, match="does not match anomaly_scores length"):
