@@ -96,6 +96,8 @@ class EvaluationResult:
     std_auc: float = field(init=False)
 
     def __post_init__(self):
+        if not self.auc_scores:
+            raise ValueError("auc_scores must contain at least one score")
         self.mean_auc = float(np.mean(self.auc_scores))
         self.std_auc = float(np.std(self.auc_scores))
 
