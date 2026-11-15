@@ -107,6 +107,18 @@ def plot_goodness_distribution(
     if ax is None:
         _, ax = plt.subplots(figsize=(8, 4))
 
+    pos_goodness = np.asarray(pos_goodness)
+    neg_goodness = np.asarray(neg_goodness)
+    for name, goodness in (("pos_goodness", pos_goodness), ("neg_goodness", neg_goodness)):
+        if goodness.ndim != 1:
+            raise ValueError(f"{name} must be 1D, got ndim={goodness.ndim}")
+        if not np.issubdtype(goodness.dtype, np.number) or np.issubdtype(
+            goodness.dtype, np.complexfloating
+        ):
+            raise ValueError(f"{name} must contain real numeric values")
+        if not np.isfinite(goodness).all():
+            raise ValueError(f"{name} must contain only finite values")
+
     if threshold is not None and (
         isinstance(threshold, bool)
         or not isinstance(threshold, Real)
