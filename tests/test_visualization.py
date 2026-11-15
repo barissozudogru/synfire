@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import numpy as np
 import pytest
 
@@ -80,3 +82,72 @@ def test_plot_goodness_distribution_rejects_invalid_goodness_inputs(
 
     with pytest.raises(ValueError, match=f"{name}.*{message}"):
         visualization.plot_goodness_distribution(**goodness, ax=_Axes())
+
+
+def test_plot_score_decomposition_rejects_non_finite_combined_scores(monkeypatch):
+    monkeypatch.setattr(visualization, "_require_matplotlib", lambda: (None, None))
+
+    decomposed = SimpleNamespace(
+        combined=np.array([0.1, np.nan]),
+        goodness_deficit=None,
+        prototype_distance=None,
+        transition_surprise=None,
+    )
+
+    with pytest.raises(ValueError, match="combined must contain only finite values"):
+        visualization.plot_score_decomposition(decomposed, ax=_Axes())
+
+
+@pytest.mark.parametrize(
+    ("field", "label"),
+    [
+        ("goodness_deficit", "Goodness Deficit"),
+        ("prototype_distance", "Prototype Distance"),
+        ("transition_surprise", "Transition Surprise"),
+    ],
+)
+@pytest.mark.parametrize("value", [np.array([1.0, np.nan]), np.array([1.0, np.inf])])
+def test_plot_score_decomposition_rejects_non_finite_components(
+    monkeypatch, field, label, value
+):
+    monkeypatch.setattr(visualization, "_require_matplotlib", lambda: (None, None))
+
+    decomposed = SimpleNamespace(
+        combined=np.array([0.1, 0.2]),
+        goodness_deficit=None,
+        prototype_distance=None,
+        transition_surprise=None,
+    )
+    setattr(decomposed, field, value)
+
+    with pytest.raises(ValueError, match=f"{label} must contain only finite values"):
+        visualization.plot_score_decomposition(decomposed, ax=_Axes())
+
+
+@pytest.mark.parametrize(
+    ("field", "label"),
+    [
+        ("goodness_deficit", "Goodness Deficit"),
+        ("prototype_distance", "Prototype Distance"),
+        ("transition_surprise", "Transition Surprise"),
+    ],
+)
+@pytest.mark.parametrize(
+    "value",
+    [np.array(["bad", "input"]), np.array([1.0 + 1.0j, 2.0])],
+)
+def test_plot_score_decomposition_rejects_non_real_numeric_components(
+    monkeypatch, field, label, value
+):
+    monkeypatch.setattr(visualization, "_require_matplotlib", lambda: (None, None))
+
+    decomposed = SimpleNamespace(
+        combined=np.array([0.1, 0.2]),
+        goodness_deficit=None,
+        prototype_distance=None,
+        transition_surprise=None,
+    )
+    setattr(decomposed, field, value)
+
+    with pytest.raises(ValueError, match=f"{label} must contain real numeric values"):
+        visualization.plot_score_decomposition(decomposed, ax=_Axes())

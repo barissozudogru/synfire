@@ -281,6 +281,12 @@ def plot_score_decomposition(
     combined = np.asarray(decomposed.combined)
     if combined.ndim != 1:
         raise ValueError(f"combined must be 1D, got ndim={combined.ndim}")
+    if not np.issubdtype(combined.dtype, np.number) or np.issubdtype(
+        combined.dtype, np.complexfloating
+    ):
+        raise ValueError("combined must contain real numeric values")
+    if not np.isfinite(combined).all():
+        raise ValueError("combined must contain only finite values")
     n = len(combined)
 
     if decomposed.goodness_deficit is not None:
@@ -294,6 +300,12 @@ def plot_score_decomposition(
         component = np.asarray(component)
         if component.ndim != 1:
             raise ValueError(f"{name} must be 1D, got ndim={component.ndim}")
+        if not np.issubdtype(component.dtype, np.number) or np.issubdtype(
+            component.dtype, np.complexfloating
+        ):
+            raise ValueError(f"{name} must contain real numeric values")
+        if not np.isfinite(component).all():
+            raise ValueError(f"{name} must contain only finite values")
         if len(component) != n:
             raise ValueError(
                 f"{name} must have the same length as combined ({n}), got {len(component)}"
