@@ -127,6 +127,19 @@ def prototype_utilization(
     Returns:
         Integer array of shape (n_prototypes,) with assignment counts.
     """
+    representations = np.asarray(representations)
+    if representations.ndim != 2:
+        raise ValueError(
+            f"representations must be 2D with shape (batch, features), "
+            f"got ndim={representations.ndim}"
+        )
+    if not np.issubdtype(representations.dtype, np.number) or np.issubdtype(
+        representations.dtype, np.complexfloating
+    ):
+        raise ValueError("representations must contain real numeric values")
+    if not np.isfinite(representations).all():
+        raise ValueError("representations must contain only finite values")
+
     labels = assign(hebbian, representations)
     counts = np.bincount(labels, minlength=hebbian.config.n_prototypes)
     return counts

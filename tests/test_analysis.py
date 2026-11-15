@@ -198,6 +198,32 @@ class TestPrototypeUtilization:
         counts = prototype_utilization(fitted_pipeline._hebbian, reps)
         assert np.all(counts >= 0)
 
+    @pytest.mark.parametrize("invalid_value", [np.nan, np.inf, -np.inf])
+    def test_non_finite_representations_are_rejected(self, fitted_pipeline, invalid_value):
+        input_dim = fitted_pipeline._hebbian.prototypes.shape[1]
+        representations = np.zeros((1, input_dim))
+        representations[0, 0] = invalid_value
+
+        with pytest.raises(ValueError, match="only finite values"):
+            prototype_utilization(fitted_pipeline._hebbian, representations)
+
+    @pytest.mark.parametrize("representations", [np.array(0.0), np.zeros(3)])
+    def test_non_2d_representations_are_rejected(self, fitted_pipeline, representations):
+        with pytest.raises(ValueError, match="representations must be 2D"):
+            prototype_utilization(fitted_pipeline._hebbian, representations)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [np.complex128, np.str_, object, bool],
+        ids=["complex", "string", "object", "boolean"],
+    )
+    def test_non_real_numeric_representations_are_rejected(self, fitted_pipeline, dtype):
+        input_dim = fitted_pipeline._hebbian.prototypes.shape[1]
+        representations = np.zeros((1, input_dim), dtype=dtype)
+
+        with pytest.raises(ValueError, match="real numeric values"):
+            prototype_utilization(fitted_pipeline._hebbian, representations)
+
     def test_counts_with_larger_batch(self, fitted_pipeline):
         series = np.sin(2 * np.pi * np.arange(300, dtype=np.float64) / 50)
         reps = fitted_pipeline.transform(series)
