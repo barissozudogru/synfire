@@ -107,6 +107,13 @@ def plot_goodness_distribution(
     if ax is None:
         _, ax = plt.subplots(figsize=(8, 4))
 
+    if threshold is not None and (
+        isinstance(threshold, bool)
+        or not isinstance(threshold, Real)
+        or not math.isfinite(threshold)
+    ):
+        raise ValueError("threshold must be a finite real number")
+
     common_kwargs = dict(bins=bins, density=True, alpha=0.6)
     ax.hist(pos_goodness, label="Positive", color="steelblue", **common_kwargs)
     ax.hist(neg_goodness, label="Negative", color="salmon", **common_kwargs)
