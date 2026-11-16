@@ -112,6 +112,8 @@ class EvaluationResult:
             or not np.isfinite(auc_scores).all()
         ):
             raise ValueError("auc_scores must contain only finite values")
+        if np.any((auc_scores < 0.0) | (auc_scores > 1.0)):
+            raise ValueError("auc_scores must be between 0 and 1")
         self.mean_auc = float(np.mean(self.auc_scores))
         self.std_auc = float(np.std(self.auc_scores))
 
