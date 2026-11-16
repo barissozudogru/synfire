@@ -17,6 +17,15 @@ class HebbianState:
     config: HebbianConfig
 
 
+def _validate_real_finite(values: NDArray, name: str) -> None:
+    if not np.issubdtype(values.dtype, np.number) or np.issubdtype(
+        values.dtype, np.complexfloating
+    ):
+        raise ValueError(f"{name} must contain real numeric values")
+    if not np.isfinite(values).all():
+        raise ValueError(f"{name} must contain only finite values")
+
+
 def _kmeans_plus_plus_init(
     data: NDArray, k: int, rng: np.random.Generator
 ) -> NDArray:
@@ -53,6 +62,7 @@ def init_hebbian(data: NDArray, config: HebbianConfig) -> HebbianState:
     Raises:
         ValueError: If n_prototypes exceeds the number of data points.
     """
+    _validate_real_finite(data, "data")
     if config.n_prototypes > len(data):
         raise ValueError(
             f"n_prototypes ({config.n_prototypes}) must not exceed the number of "
@@ -88,6 +98,8 @@ def _pairwise_sq_distances(x: NDArray, prototypes: NDArray) -> NDArray:
             "x and prototypes must have the same number of features, "
             f"got {x.shape[1]} and {prototypes.shape[1]}"
         )
+    _validate_real_finite(x, "x")
+    _validate_real_finite(prototypes, "prototypes")
 
     calculation_dtype = np.result_type(x.dtype, prototypes.dtype, np.float64)
     x_calculation = x.astype(calculation_dtype, copy=False)

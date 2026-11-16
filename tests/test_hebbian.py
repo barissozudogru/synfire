@@ -22,6 +22,13 @@ def _make_clustered_data(rng, n_per_cluster=100):
 
 
 class TestHebbianInit:
+    @pytest.mark.parametrize("invalid_value", [1.0 + 1.0j, np.nan, np.inf])
+    def test_init_rejects_invalid_data(self, invalid_value):
+        data = np.array([[invalid_value, 0.0]])
+
+        with pytest.raises(ValueError, match="data must contain"):
+            init_hebbian(data, HebbianConfig(n_prototypes=1))
+
     @pytest.mark.parametrize("lr", [np.nan, np.inf, -np.inf])
     def test_non_finite_learning_rate_raises(self, lr):
         with pytest.raises(ValueError, match="lr must be finite and > 0"):
@@ -77,6 +84,27 @@ class TestAssign:
 
 
 class TestDistances:
+    @pytest.mark.parametrize("array_name", ["x", "prototypes"])
+    @pytest.mark.parametrize("invalid_value", [np.nan, np.inf, -np.inf])
+    def test_pairwise_sq_distances_rejects_non_finite_values(self, array_name, invalid_value):
+        x = np.array([[invalid_value, 0.0]]) if array_name == "x" else np.zeros((1, 2))
+        proto = np.zeros((1, 2))
+        if array_name == "prototypes":
+            proto[0, 0] = invalid_value
+
+        with pytest.raises(ValueError, match="only finite values"):
+            _pairwise_sq_distances(x, proto)
+
+    @pytest.mark.parametrize("array_name", ["x", "prototypes"])
+    def test_pairwise_sq_distances_rejects_complex_values(self, array_name):
+        x = np.array([[1.0 + 1.0j, 0.0]]) if array_name == "x" else np.zeros((1, 2))
+        proto = np.zeros((1, 2))
+        if array_name == "prototypes":
+            proto = np.array([[1.0 + 1.0j, 0.0]])
+
+        with pytest.raises(ValueError, match="real numeric values"):
+            _pairwise_sq_distances(x, proto)
+
     def test_pairwise_sq_distances_rejects_mismatched_feature_counts(self):
         x = np.ones((2, 3))
         proto = np.ones((4, 2))
