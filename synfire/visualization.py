@@ -116,6 +116,8 @@ def plot_goodness_distribution(
             goodness.dtype, np.complexfloating
         ):
             raise ValueError(f"{name} must contain real numeric values")
+        if goodness.size == 0:
+            raise ValueError(f"{name} must be non-empty")
         if not np.isfinite(goodness).all():
             raise ValueError(f"{name} must contain only finite values")
 
