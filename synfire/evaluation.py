@@ -98,6 +98,11 @@ class EvaluationResult:
     def __post_init__(self):
         if not self.auc_scores:
             raise ValueError("auc_scores must contain at least one score")
+        if len(self.seeds) != len(self.auc_scores):
+            raise ValueError(
+                "seeds and auc_scores must have the same length, "
+                f"got {len(self.seeds)} and {len(self.auc_scores)}"
+            )
         self.mean_auc = float(np.mean(self.auc_scores))
         self.std_auc = float(np.std(self.auc_scores))
 

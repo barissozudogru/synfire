@@ -184,6 +184,10 @@ class TestMultiSeedEvaluation:
         with pytest.raises(ValueError, match="auc_scores must contain at least one score"):
             EvaluationResult(seeds=[], auc_scores=[])
 
+    def test_result_rejects_mismatched_seed_and_score_lengths(self):
+        with pytest.raises(ValueError, match="seeds and auc_scores must have the same length"):
+            EvaluationResult(seeds=[0], auc_scores=[0.7, 0.8])
+
     def test_multi_seed_raises_when_labels_longer_than_scores(self, sine_series, small_config):
         labels = np.zeros(len(sine_series))
         with pytest.raises(ValueError, match="does not match anomaly_scores length"):
