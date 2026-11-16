@@ -105,6 +105,8 @@ class EvaluationResult:
                 "seeds and auc_scores must have the same length, "
                 f"got {len(self.seeds)} and {len(self.auc_scores)}"
             )
+        if not np.isfinite(self.auc_scores).all():
+            raise ValueError("auc_scores must contain only finite values")
         self.mean_auc = float(np.mean(self.auc_scores))
         self.std_auc = float(np.std(self.auc_scores))
 
