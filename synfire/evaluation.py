@@ -35,6 +35,8 @@ def mann_whitney_auc(scores: NDArray, labels: NDArray) -> float:
         raise ValueError(
             f"scores and labels must have the same length, got {len(scores)} and {len(labels)}"
         )
+    if len(scores) == 0:
+        raise ValueError("scores and labels must contain at least one sample")
     if (
         np.issubdtype(scores.dtype, np.complexfloating)
         or not np.issubdtype(scores.dtype, np.number)

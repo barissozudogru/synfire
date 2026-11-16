@@ -37,6 +37,10 @@ class TestMannWhitneyAUC:
         labels = np.array([1, 1, 1])
         assert mann_whitney_auc(scores, labels) == 0.5
 
+    def test_empty_inputs_raise_value_error(self):
+        with pytest.raises(ValueError, match="at least one sample"):
+            mann_whitney_auc(np.array([]), np.array([]))
+
     def test_non_finite_scores_raise_value_error(self):
         scores = np.array([np.nan, 1.0, 2.0])
         labels = np.array([1, 0, 0])
