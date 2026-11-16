@@ -193,6 +193,11 @@ class TestMultiSeedEvaluation:
         with pytest.raises(ValueError, match="finite"):
             EvaluationResult(seeds=[1], auc_scores=[invalid_score])
 
+    @pytest.mark.parametrize("invalid_score", [-0.01, 1.01])
+    def test_result_rejects_auc_scores_outside_unit_interval(self, invalid_score):
+        with pytest.raises(ValueError, match="between 0 and 1"):
+            EvaluationResult(seeds=[1], auc_scores=[invalid_score])
+
     def test_non_numeric_result_scores_raise_clear_error(self):
         with pytest.raises(ValueError, match="finite"):
             EvaluationResult(seeds=[1], auc_scores=["0.5"])
