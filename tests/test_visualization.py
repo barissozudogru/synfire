@@ -84,6 +84,20 @@ def test_plot_goodness_distribution_rejects_invalid_goodness_inputs(
         visualization.plot_goodness_distribution(**goodness, ax=_Axes())
 
 
+@pytest.mark.parametrize("name", ["pos_goodness", "neg_goodness"])
+def test_plot_goodness_distribution_rejects_empty_goodness_inputs(monkeypatch, name):
+    monkeypatch.setattr(visualization, "_require_matplotlib", lambda: (None, None))
+
+    goodness = {
+        "pos_goodness": np.array([0.1, 0.2]),
+        "neg_goodness": np.array([0.8, 0.9]),
+    }
+    goodness[name] = np.array([], dtype=np.float64)
+
+    with pytest.raises(ValueError, match=f"{name} must be non-empty"):
+        visualization.plot_goodness_distribution(**goodness, ax=_Axes())
+
+
 def test_plot_score_decomposition_rejects_non_finite_combined_scores(monkeypatch):
     monkeypatch.setattr(visualization, "_require_matplotlib", lambda: (None, None))
 
