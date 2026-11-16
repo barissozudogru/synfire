@@ -74,6 +74,14 @@ class TestForwardAndGoodness:
         h = forward(state, x)
         assert np.all(h >= 0)
 
+    @pytest.mark.parametrize("invalid_value", [1.0 + 1.0j, np.nan, np.inf])
+    def test_forward_rejects_non_real_or_non_finite_input(self, invalid_value):
+        state = init_layer(FFLayerConfig(input_dim=2, hidden_dim=2))
+        x = np.array([[invalid_value, 0.0]])
+
+        with pytest.raises(ValueError, match=r"real numeric values|only finite values"):
+            forward(state, x)
+
     def test_goodness_shape(self):
         h = np.random.default_rng(0).standard_normal((10, 32))
         h = np.maximum(h, 0)

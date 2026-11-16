@@ -91,6 +91,12 @@ def forward(state: FFLayerState, x: NDArray) -> NDArray:
             "x must have the same number of features as the layer input_dim, "
             f"got {x.shape[1]} and {state.config.input_dim}"
         )
+    if not np.issubdtype(x.dtype, np.number) or np.issubdtype(
+        x.dtype, np.complexfloating
+    ):
+        raise ValueError("x must contain real numeric values")
+    if not np.isfinite(x).all():
+        raise ValueError("x must contain only finite values")
     pre = backend.matmul(x, state.W.T) + state.b
     if state.config.layer_norm and state.ln_gain is not None and state.ln_bias is not None:
         normed, _, _ = _apply_layer_norm(pre, state.ln_gain, state.ln_bias)
