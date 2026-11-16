@@ -193,6 +193,10 @@ class TestMultiSeedEvaluation:
         with pytest.raises(ValueError, match="finite"):
             EvaluationResult(seeds=[1], auc_scores=[invalid_score])
 
+    def test_non_numeric_result_scores_raise_clear_error(self):
+        with pytest.raises(ValueError, match="finite"):
+            EvaluationResult(seeds=[1], auc_scores=["0.5"])
+
     def test_result_rejects_mismatched_seed_and_score_lengths(self):
         with pytest.raises(ValueError, match="seeds and auc_scores must have the same length"):
             EvaluationResult(seeds=[0], auc_scores=[0.7, 0.8])
