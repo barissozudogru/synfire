@@ -184,6 +184,12 @@ class TestKmeansPlusPlusEdgeCases:
 
 
 class TestTrainHebbian:
+    def test_empty_data_raises_clear_error(self, rng):
+        state = init_hebbian(rng.standard_normal((10, 2)), HebbianConfig(n_prototypes=2))
+
+        with pytest.raises(ValueError, match="data must contain at least one sample"):
+            train_hebbian(state, np.empty((0, 2)))
+
     @pytest.mark.parametrize("batch_size", [True, 1.5])
     def test_non_integer_batch_size_raises(self, rng, batch_size):
         data = rng.standard_normal((10, 2))
