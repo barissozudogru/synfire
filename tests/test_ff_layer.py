@@ -321,6 +321,15 @@ class TestTrainLayer:
 class TestPairwiseSqDistances:
     """Tests for the chunked pairwise squared-distance helper (H-1 fix)."""
 
+    @pytest.mark.parametrize("array_name", ["a", "b"])
+    @pytest.mark.parametrize("invalid_value", [np.nan, np.inf, 1.0 + 1.0j])
+    def test_rejects_non_finite_or_complex_inputs(self, array_name, invalid_value):
+        a = np.array([[invalid_value, 0.0]]) if array_name == "a" else np.zeros((1, 2))
+        b = np.array([[invalid_value, 0.0]]) if array_name == "b" else np.zeros((1, 2))
+
+        with pytest.raises(ValueError, match="real numeric values|finite values"):
+            _pairwise_sq_distances(a, b)
+
     def test_rejects_non_2d_negative_batch(self):
         with pytest.raises(ValueError, match=r"b must be 2D"):
             _pairwise_sq_distances(np.ones((2, 3)), np.ones(3))
