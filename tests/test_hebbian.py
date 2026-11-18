@@ -22,6 +22,10 @@ def _make_clustered_data(rng, n_per_cluster=100):
 
 
 class TestHebbianInit:
+    def test_init_rejects_non_2d_data_with_clear_error(self):
+        with pytest.raises(ValueError, match=r"data must be 2D"):
+            init_hebbian(np.ones(3), HebbianConfig(n_prototypes=1))
+
     @pytest.mark.parametrize("invalid_value", [1.0 + 1.0j, np.nan, np.inf])
     def test_init_rejects_invalid_data(self, invalid_value):
         data = np.array([[invalid_value, 0.0]])

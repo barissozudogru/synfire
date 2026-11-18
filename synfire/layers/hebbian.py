@@ -62,6 +62,8 @@ def init_hebbian(data: NDArray, config: HebbianConfig) -> HebbianState:
     Raises:
         ValueError: If n_prototypes exceeds the number of data points.
     """
+    if data.ndim != 2:
+        raise ValueError(f"data must be 2D with shape (batch, features), got ndim={data.ndim}")
     _validate_real_finite(data, "data")
     if config.n_prototypes > len(data):
         raise ValueError(
