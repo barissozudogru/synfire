@@ -223,6 +223,8 @@ def train_hebbian(
         raise ValueError(f"batch_size must be an integer, got {batch_size!r}")
     if batch_size < 1:
         raise ValueError(f"batch_size must be >= 1, got {batch_size}")
+    if len(data) == 0:
+        raise ValueError("data must contain at least one sample")
 
     rng = np.random.default_rng(state.config.seed)
     n = len(data)
