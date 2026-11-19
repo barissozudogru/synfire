@@ -321,6 +321,11 @@ class TestTrainLayer:
 class TestPairwiseSqDistances:
     """Tests for the chunked pairwise squared-distance helper (H-1 fix)."""
 
+    def test_array_like_inputs_are_converted_before_validation(self):
+        got = _pairwise_sq_distances([[0.0, 1.0]], [[0.0, 0.0]])
+
+        np.testing.assert_allclose(got, [[1.0]])
+
     @pytest.mark.parametrize("array_name", ["a", "b"])
     @pytest.mark.parametrize("invalid_value", [np.nan, np.inf, 1.0 + 1.0j])
     def test_rejects_non_finite_or_complex_inputs(self, array_name, invalid_value):
