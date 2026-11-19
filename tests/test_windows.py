@@ -113,6 +113,12 @@ class TestConsecutivePairs:
 
 
 class TestRandomPairs:
+    def test_array_like_windows_are_converted_before_indexing(self, rng):
+        left, right = make_random_pairs([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]], rng)
+
+        assert left.shape == right.shape == (3, 2)
+        np.testing.assert_array_equal(left, [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
+
     def test_shapes(self, sine_series, rng):
         windows = sliding_windows(sine_series, WindowConfig(window_size=20))
         left, right = make_random_pairs(windows, rng, min_gap=5)
