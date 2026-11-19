@@ -178,6 +178,14 @@ class TestRandomPairsEdgeCases:
 
 
 class TestShuffledPairs:
+    def test_array_like_windows_are_converted_before_indexing(self):
+        left, right = make_shuffled_pairs(
+            [[1.0, 2.0], [3.0, 4.0]], np.random.default_rng(0)
+        )
+
+        assert left.shape == right.shape == (2, 2)
+        np.testing.assert_array_equal(np.sort(right[:, 0]), [1.0, 3.0])
+
     def test_shapes(self, sine_series, rng):
         windows = sliding_windows(sine_series, WindowConfig(window_size=20))
         left, right = make_shuffled_pairs(windows, rng)
