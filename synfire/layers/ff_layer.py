@@ -200,6 +200,9 @@ def _pairwise_sq_distances(a: NDArray, b: NDArray, chunk_size: int = 512) -> NDA
     Returns:
         Distance matrix of shape (Bp, Bn).
     """
+    a = np.asarray(a)
+    b = np.asarray(b)
+
     if isinstance(chunk_size, bool) or not isinstance(chunk_size, Integral) or chunk_size < 1:
         raise ValueError(f"chunk_size must be a positive integer, got {chunk_size!r}")
 
