@@ -65,6 +65,13 @@ class TestHebbianInit:
 
 
 class TestAssign:
+    def test_array_like_input_is_converted_before_validation(self, rng):
+        state = init_hebbian(rng.standard_normal((4, 3)), HebbianConfig(n_prototypes=2))
+
+        labels = assign(state, [[0.0, 0.0, 0.0]])
+
+        assert labels.shape == (1,)
+
     def test_one_dimensional_input_raises_clear_error(self, rng):
         state = init_hebbian(rng.standard_normal((4, 3)), HebbianConfig(n_prototypes=2))
 

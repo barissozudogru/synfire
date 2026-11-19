@@ -89,6 +89,9 @@ def _pairwise_sq_distances(x: NDArray, prototypes: NDArray) -> NDArray:
     Returns:
         Distance matrix of shape (batch, n_prototypes).
     """
+    x = np.asarray(x)
+    prototypes = np.asarray(prototypes)
+
     if x.ndim != 2:
         raise ValueError(f"x must be 2D with shape (batch, features), got ndim={x.ndim}")
     if prototypes.ndim != 2:
