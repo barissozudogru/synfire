@@ -65,6 +65,7 @@ def make_consecutive_pairs(windows: NDArray) -> tuple[NDArray, NDArray]:
         Tuple of (left, right) arrays, each of shape (N-1, D) where D is the
         flattened window dimension.
     """
+    windows = np.asarray(windows)
     if windows.ndim != 2:
         raise ValueError(f"windows must be 2D, got ndim={windows.ndim}")
     return windows[:-1], windows[1:]
