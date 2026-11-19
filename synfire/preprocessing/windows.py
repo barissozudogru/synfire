@@ -129,6 +129,8 @@ def make_shuffled_pairs(
         Tuple of (left, shuffled_right) arrays.
     """
     windows = np.asarray(windows)
+    if windows.ndim != 2:
+        raise ValueError(f"windows must be 2D, got ndim={windows.ndim}")
     if len(windows) < 2:
         return windows[:0], windows[:0].copy()
 

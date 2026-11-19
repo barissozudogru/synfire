@@ -182,6 +182,10 @@ class TestRandomPairsEdgeCases:
 
 
 class TestShuffledPairs:
+    def test_non_2d_windows_raise_clear_error(self):
+        with pytest.raises(ValueError, match=r"windows must be 2D"):
+            make_shuffled_pairs(np.arange(6, dtype=np.float64), np.random.default_rng(0))
+
     def test_array_like_windows_are_converted_before_indexing(self):
         left, right = make_shuffled_pairs(
             [[1.0, 2.0], [3.0, 4.0]], np.random.default_rng(0)
