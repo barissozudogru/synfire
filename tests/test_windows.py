@@ -92,6 +92,12 @@ class TestConsecutivePairs:
         with pytest.raises(ValueError, match=r"windows must be 2D"):
             make_consecutive_pairs(np.arange(4, dtype=np.float64))
 
+    def test_array_like_windows_are_converted_before_validation(self):
+        left, right = make_consecutive_pairs([[1.0, 2.0], [3.0, 4.0]])
+
+        np.testing.assert_array_equal(left, [[1.0, 2.0]])
+        np.testing.assert_array_equal(right, [[3.0, 4.0]])
+
     def test_shapes(self, sine_series):
         windows = sliding_windows(sine_series, WindowConfig(window_size=20))
         left, right = make_consecutive_pairs(windows)
