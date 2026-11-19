@@ -67,6 +67,14 @@ class TestForwardAndGoodness:
         h = forward(state, x)
         assert h.shape == (10, 32)
 
+    def test_forward_accepts_array_like_input(self):
+        state = init_layer(FFLayerConfig(input_dim=2, hidden_dim=2))
+
+        activations = forward(state, [[1.0, 2.0]])
+
+        assert activations.shape == (1, 2)
+        assert np.all(activations >= 0)
+
     def test_forward_nonneg(self):
         cfg = FFLayerConfig(input_dim=20, hidden_dim=32)
         state = init_layer(cfg)
