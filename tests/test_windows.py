@@ -88,6 +88,10 @@ class TestSlidingWindows:
 
 
 class TestConsecutivePairs:
+    def test_non_2d_windows_raise_clear_error(self):
+        with pytest.raises(ValueError, match=r"windows must be 2D"):
+            make_consecutive_pairs(np.arange(4, dtype=np.float64))
+
     def test_shapes(self, sine_series):
         windows = sliding_windows(sine_series, WindowConfig(window_size=20))
         left, right = make_consecutive_pairs(windows)
