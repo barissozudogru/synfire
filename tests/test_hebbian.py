@@ -184,6 +184,22 @@ class TestKmeansPlusPlusEdgeCases:
 
 
 class TestTrainHebbian:
+    def test_scalar_data_raises_clear_shape_error(self, rng):
+        state = init_hebbian(rng.standard_normal((10, 2)), HebbianConfig(n_prototypes=2))
+
+        with pytest.raises(ValueError, match=r"data must be 2D"):
+            train_hebbian(state, np.array(1.0))
+
+    @pytest.mark.parametrize(
+        "invalid_value", [np.nan, np.inf, 1.0 + 1.0j, "not numeric"]
+    )
+    def test_invalid_data_raises_from_train_preflight(self, rng, invalid_value):
+        state = init_hebbian(rng.standard_normal((10, 2)), HebbianConfig(n_prototypes=2))
+        data = np.array([[invalid_value, 0.0]])
+
+        with pytest.raises(ValueError, match=r"data must contain"):
+            train_hebbian(state, data)
+
     def test_empty_data_raises_clear_error(self, rng):
         state = init_hebbian(rng.standard_normal((10, 2)), HebbianConfig(n_prototypes=2))
 

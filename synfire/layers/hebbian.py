@@ -223,6 +223,10 @@ def train_hebbian(
         raise ValueError(f"batch_size must be an integer, got {batch_size!r}")
     if batch_size < 1:
         raise ValueError(f"batch_size must be >= 1, got {batch_size}")
+    data = np.asarray(data)
+    if data.ndim != 2:
+        raise ValueError(f"data must be 2D with shape (batch, features), got ndim={data.ndim}")
+    _validate_real_finite(data, "data")
     if len(data) == 0:
         raise ValueError("data must contain at least one sample")
 
