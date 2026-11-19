@@ -84,6 +84,7 @@ def forward(state: FFLayerState, x: NDArray) -> NDArray:
     Returns:
         Activations of shape (batch, hidden_dim).
     """
+    x = np.asarray(x)
     if x.ndim != 2:
         raise ValueError(f"x must be 2D with shape (batch, input_dim), got ndim={x.ndim}")
     if x.shape[1] != state.config.input_dim:
