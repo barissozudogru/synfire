@@ -526,6 +526,8 @@ def train_layer(
         config.epochs when early stopping triggers.
     """
     config = state.config
+    x_pos = np.asarray(x_pos)
+    x_neg = np.asarray(x_neg)
     patience = config.early_stopping_patience
     min_delta = config.early_stopping_min_delta
     schedule = config.lr_schedule
