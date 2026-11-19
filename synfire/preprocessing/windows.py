@@ -85,6 +85,8 @@ def make_random_pairs(
         Tuple of (left, right) arrays, each of shape (N, D).
     """
     windows = np.asarray(windows)
+    if windows.ndim != 2:
+        raise ValueError(f"windows must be 2D, got ndim={windows.ndim}")
     if isinstance(min_gap, bool) or not isinstance(min_gap, Integral):
         raise ValueError(f"min_gap must be an integer, got {min_gap!r}")
     if min_gap < 0:
