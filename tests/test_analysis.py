@@ -46,6 +46,15 @@ class TestLayerAnomalyDecomposition:
         result = layer_anomaly_decomposition(fitted_pipeline._stack, test_pairs)
         assert result.ndim == 2
 
+    def test_array_like_batch_is_accepted(self, fitted_pipeline):
+        input_dim = fitted_pipeline._stack.layers[0].config.input_dim
+        result = layer_anomaly_decomposition(
+            fitted_pipeline._stack,
+            [[0.0] * input_dim],
+        )
+
+        assert result.shape == (1, len(fitted_pipeline._stack.layers))
+
     def test_shape_batch_x_nlayers(self, fitted_pipeline, test_pairs):
         result = layer_anomaly_decomposition(fitted_pipeline._stack, test_pairs)
         n_layers = len(fitted_pipeline._stack.layers)

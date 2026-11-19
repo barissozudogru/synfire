@@ -43,6 +43,7 @@ def layer_anomaly_decomposition(
     ):
         raise ValueError("threshold must be a finite real number")
 
+    x = np.asarray(x)
     activations = forward_stack(stack, x)
     deficits = np.stack(
         [threshold - goodness(acts) for acts in activations], axis=1
