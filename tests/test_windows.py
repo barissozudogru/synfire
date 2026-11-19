@@ -140,6 +140,10 @@ class TestRandomPairs:
 
 
 class TestRandomPairsEdgeCases:
+    def test_non_2d_windows_raise_clear_error(self, rng):
+        with pytest.raises(ValueError, match=r"windows must be 2D"):
+            make_random_pairs(np.arange(6, dtype=np.float64), rng)
+
     def test_zero_min_gap_still_uses_other_windows(self, rng):
         windows = np.arange(12, dtype=np.float64).reshape(4, 3)
 
