@@ -126,6 +126,7 @@ def make_shuffled_pairs(
     Returns:
         Tuple of (left, shuffled_right) arrays.
     """
+    windows = np.asarray(windows)
     if len(windows) < 2:
         return windows[:0], windows[:0].copy()
 
