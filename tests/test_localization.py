@@ -220,6 +220,18 @@ class TestMergeGap:
         )
         assert segments == []
 
+    def test_merge_gap_does_not_cross_discarded_flagged_run(self):
+        scores = np.array([1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0])
+
+        segments = localize_anomalies(
+            scores, threshold=0.5, min_duration=2, merge_gap=3
+        )
+
+        assert [(segment.start_idx, segment.end_idx) for segment in segments] == [
+            (0, 2),
+            (5, 7),
+        ]
+
     def test_merged_segment_peak_from_underlying_scores(self):
         scores = np.array([0.0, 1.0, 0.0, 2.0, 0.0], dtype=np.float64)
         segments = localize_anomalies(scores, threshold=0.5, merge_gap=1)
