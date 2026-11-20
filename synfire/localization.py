@@ -119,7 +119,7 @@ def localize_anomalies(
 
     # Merge close segments
     if merge_gap > 0 and len(segments) > 1:
-        segments = _merge_segments(segments, merge_gap)
+        segments = _merge_segments(segments, merge_gap, flagged)
 
     # Attach score statistics
     result = []
@@ -155,14 +155,14 @@ def _find_runs(flagged: NDArray) -> list[AnomalySegment]:
 
 
 def _merge_segments(
-    segments: list[AnomalySegment], merge_gap: int
+    segments: list[AnomalySegment], merge_gap: int, flagged: NDArray
 ) -> list[AnomalySegment]:
     """Merge segments whose gap is <= merge_gap."""
     merged = [segments[0]]
     for current in segments[1:]:
         prev = merged[-1]
         gap = current.start_idx - prev.end_idx
-        if gap <= merge_gap:
+        if gap <= merge_gap and not flagged[prev.end_idx : current.start_idx].any():
             merged[-1] = AnomalySegment(
                 start_idx=prev.start_idx,
                 end_idx=current.end_idx,
