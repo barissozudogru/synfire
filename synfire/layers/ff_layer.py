@@ -114,6 +114,7 @@ def goodness(activations: NDArray) -> NDArray:
     Returns:
         Goodness scores of shape (batch,).
     """
+    activations = np.asarray(activations)
     if activations.ndim != 2:
         raise ValueError(
             f"activations must be 2D with shape (batch, hidden_dim), got ndim={activations.ndim}"

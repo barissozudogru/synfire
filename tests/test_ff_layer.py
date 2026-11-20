@@ -47,6 +47,11 @@ class TestFFLayerInit:
 
 
 class TestForwardAndGoodness:
+    def test_goodness_accepts_array_like_activations(self):
+        scores = goodness([[1.0, 2.0]])
+
+        np.testing.assert_allclose(scores, [2.5])
+
     @pytest.mark.parametrize(
         ("x", "message"),
         [
