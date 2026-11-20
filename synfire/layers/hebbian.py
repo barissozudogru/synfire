@@ -110,9 +110,22 @@ def _pairwise_sq_distances(x: NDArray, prototypes: NDArray) -> NDArray:
     calculation_dtype = np.result_type(x.dtype, prototypes.dtype, np.float64)
     x_calculation = x.astype(calculation_dtype, copy=False)
     prototypes_calculation = prototypes.astype(calculation_dtype, copy=False)
-    x_sq = np.sum(x_calculation ** 2, axis=1, keepdims=True)
-    p_sq = np.sum(prototypes_calculation ** 2, axis=1, keepdims=True).T
-    dists = x_sq + p_sq - 2.0 * (x_calculation @ prototypes_calculation.T)
+    # The norm identity is fast, but can produce ``inf - inf`` for large
+    # finite values, including when a sample exactly equals a prototype.
+    with np.errstate(over="ignore", invalid="ignore"):
+        x_sq = np.sum(x_calculation ** 2, axis=1, keepdims=True)
+        p_sq = np.sum(prototypes_calculation ** 2, axis=1, keepdims=True).T
+        dists = x_sq + p_sq - 2.0 * (x_calculation @ prototypes_calculation.T)
+
+    invalid = ~np.isfinite(dists)
+    if np.any(invalid):
+        # Recompute only unstable pairs from their differences. This avoids
+        # materializing the full broadcast tensor for the normal case.
+        rows, cols = np.nonzero(invalid)
+        with np.errstate(over="ignore", invalid="ignore"):
+            for row, col in zip(rows, cols, strict=True):
+                difference = x_calculation[row] - prototypes_calculation[col]
+                dists[row, col] = np.sum(difference * difference)
     np.maximum(dists, 0.0, out=dists)
     return dists
 

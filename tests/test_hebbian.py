@@ -181,6 +181,13 @@ class TestDistances:
 
         np.testing.assert_allclose(dists, [[16e18]])
 
+    def test_pairwise_sq_distances_handles_large_identical_finite_values(self):
+        values = np.array([[1e200]])
+
+        dists = _pairwise_sq_distances(values, values)
+
+        np.testing.assert_array_equal(dists, [[0.0]])
+
 
 
 class TestKmeansPlusPlusEdgeCases:
